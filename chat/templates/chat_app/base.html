@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}Chat App{% endblock %}</title>
+    <style>
+        body{font-family: Arial, sans-serif; background:#f2f2f2; margin:0}
+        .header{background:#075e54;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+        .container{max-width:800px;margin:24px auto;padding:0 16px}
+        a.button{background:#25d366;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none}
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="header">
+        <div>Chat App</div>
+        <div>
+            {% if request.session.chat_user_id %}
+                <form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button type="submit" style="background:#25d366;border:none;padding:8px 12px;border-radius:6px;color:#fff;cursor:pointer">Logout</button></form>
+            {% else %}
+                <a class="button" href="{% url 'login' %}">Login</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

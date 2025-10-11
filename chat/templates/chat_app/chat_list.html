@@ -1,0 +1,12 @@
+{% extends 'chat_app/base.html' %}
+{% block title %}Chats{% endblock %}
+{% block content %}
+<h2>Chats (logged in as {{ current_user.name }})</h2>
+<ul>
+    {% for user in users %}
+        <li><a href="{% url 'chat' user.number %}">{{ user.name }} &lt;{{ user.number }}&gt;</a></li>
+    {% empty %}
+        <li>No other users found.</li>
+    {% endfor %}
+ </ul>
+{% endblock %}

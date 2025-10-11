@@ -1,0 +1,26 @@
+{% extends 'chat_app/base.html' %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+<h2>Sign up</h2>
+<form method="post">
+    {% csrf_token %}
+    <p>
+        <label for="id_name">Name:</label><br>
+        {{ form.name }}
+        {% if form.name.errors %}<br><span style="color:red">{{ form.name.errors.0 }}</span>{% endif %}
+    </p>
+    <p>
+        <label for="id_number">Number:</label><br>
+        {{ form.number }}
+        {% if form.number.errors %}<br><span style="color:red">{{ form.number.errors.0 }}</span>{% endif %}
+    </p>
+    <p>
+        <label for="id_password">Password:</label><br>
+        {{ form.password }}
+        {% if form.password.errors %}<br><span style="color:red">{{ form.password.errors.0 }}</span>{% endif %}
+    </p>
+    <button type="submit">Sign up</button>
+    
+</form>
+<p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
+{% endblock %}
