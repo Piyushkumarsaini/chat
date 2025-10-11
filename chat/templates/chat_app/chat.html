@@ -1,24 +1,114 @@
 {% extends 'chat_app/base.html' %}
 {% block title %}Chat with {{ receiver.name }}{% endblock %}
 {% block content %}
-    <div class="chat-container" style="max-width:600px;margin:20px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;flex-direction:column;height:70vh;">
-        <div class="chat-header" style="background:#075e54;color:#fff;padding:16px;font-size:1.2em;border-top-left-radius:8px;border-top-right-radius:8px;">Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;</div>
-        <div class="chat-messages" style="flex:1;padding:16px;overflow-y:auto;background:#ece5dd;">
-            {% for msg in messages %}
-                <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}" style="margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;{% if msg.sender.id == current_user.id %}background:#dcf8c6;margin-left:auto;text-align:right;{% else %}background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;{% endif %}">
-                    <div>{{ msg.content|linebreaksbr }}</div>
-                    <small style="color:#888;">{{ msg.timestamp|date:"H:i d M Y" }}</small>
-                </div>
-            {% empty %}
-                <div style="text-align:center;color:#888;">No messages yet.</div>
-            {% endfor %}
-        </div>
-        <form id="chat-form" method="post" class="chat-input" style="display:flex;padding:16px;background:#f7f7f7;border-bottom-left-radius:8px;border-bottom-right-radius:8px;">
-            {% csrf_token %}
-            <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required style="flex:1;resize:none;border-radius:8px;border:1px solid #ccc;padding:8px;font-size:1em;"></textarea>
-            <button id="chat-message-submit" type="submit" style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:8px 20px;margin-left:8px;font-size:1em;cursor:pointer;">Send</button>
-        </form>
+<div class="chat-container" style="max-width:600px;margin:20px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;flex-direction:column;height:70vh;">
+    <div class="chat-header" style="background:#075e54;color:#fff;padding:16px;font-size:1.2em;border-top-left-radius:8px;border-top-right-radius:8px;">
+        Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
     </div>
 
-    <!-- WebSocket disabled for now — chat uses normal form POST. JS removed. -->
+    <div id="message-list" class="chat-messages" style="flex:1;padding:16px;overflow-y:auto;background:#ece5dd;">
+        {% for msg in messages %}
+            <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
+                style="margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;
+                {% if msg.sender.id == current_user.id %}
+                    background:#dcf8c6;margin-left:auto;text-align:right;
+                {% else %}
+                    background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;
+                {% endif %}">
+                <div>{{ msg.content|linebreaksbr }}</div>
+                <small style="color:#888;">{{ msg.timestamp|date:"H:i d M Y" }}</small>
+            </div>
+        {% empty %}
+            <div style="text-align:center;color:#888;">No messages yet.</div>
+        {% endfor %}
+    </div>
+
+    <form id="chat-form" style="display:flex;padding:16px;background:#f7f7f7;border-bottom-left-radius:8px;border-bottom-right-radius:8px;">
+        {% csrf_token %}
+        <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required
+            style="flex:1;resize:none;border-radius:8px;border:1px solid #ccc;padding:8px;font-size:1em;"></textarea>
+        <button id="chat-message-submit" type="submit"
+            style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:8px 20px;margin-left:8px;font-size:1em;cursor:pointer;">
+            Send
+        </button>
+    </form>
+</div>
+
+<script>
+const roomName = "{{ room_name }}";
+const currentUserId = parseInt("{{ current_user.id }}", 10);
+const receiverId = parseInt("{{ receiver.id }}", 10);
+
+// Build WebSocket URL relative to current origin (keeps host/port consistent)
+const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+const wsUrl = wsScheme + "://" + window.location.host + "/ws/chat/" + roomName + "/";
+const chatSocket = new WebSocket(wsUrl);
+
+chatSocket.onopen = function() {
+    console.log('WebSocket connected to', wsUrl);
+};
+
+chatSocket.onmessage = function(e) {
+    try {
+        const data = JSON.parse(e.data);
+        const messageList = document.getElementById('message-list');
+
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+        messageDiv.style.marginBottom = '12px';
+        messageDiv.style.maxWidth = '70%';
+        messageDiv.style.padding = '10px 16px';
+        messageDiv.style.borderRadius = '18px';
+        messageDiv.style.clear = 'both';
+
+        const inner = document.createElement('div');
+        inner.textContent = data.message;
+
+        const meta = document.createElement('small');
+        meta.style.color = '#888';
+        if (data.timestamp) {
+            const d = new Date(data.timestamp);
+            meta.textContent = d.toLocaleString();
+        }
+
+        if (parseInt(data.sender_id, 10) === currentUserId) {
+            messageDiv.style.background = '#dcf8c6';
+            messageDiv.style.marginLeft = 'auto';
+            messageDiv.style.textAlign = 'right';
+            messageDiv.appendChild(inner);
+            messageDiv.appendChild(meta);
+        } else {
+            messageDiv.style.background = '#fff';
+            messageDiv.style.marginRight = 'auto';
+            messageDiv.style.textAlign = 'left';
+            messageDiv.style.border = '1px solid #ddd';
+            messageDiv.appendChild(inner);
+            messageDiv.appendChild(meta);
+        }
+
+        messageList.appendChild(messageDiv);
+        messageList.scrollTop = messageList.scrollHeight; // Auto-scroll to bottom
+    } catch (err) {
+        console.error('Error processing message', err, e.data);
+    }
+};
+
+chatSocket.onerror = function(e) {
+    console.error('WebSocket error', e);
+};
+
+document.getElementById('chat-form').onsubmit = function(e) {
+    e.preventDefault();
+    const messageInputDom = document.getElementById('chat-message-input');
+    const message = messageInputDom.value.trim();
+    if (message.length > 0 && chatSocket.readyState === WebSocket.OPEN) {
+        chatSocket.send(JSON.stringify({
+            'message': message,
+            'sender_id': currentUserId,
+            'receiver_id': receiverId
+        }));
+        messageInputDom.value = '';
+    }
+};
+</script>
 {% endblock %}
