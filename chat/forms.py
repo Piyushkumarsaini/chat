@@ -1,4 +1,6 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 import re
 
 
@@ -19,16 +21,10 @@ class SignupForm(forms.Form):
         if not (has_letter and has_digit and has_special):
             raise forms.ValidationError('Password must be exactly 3 characters long and include one letter, one digit, and one special character.')
         return pwd
-
-
+    
 class LoginForm(forms.Form):
     number = forms.CharField(max_length=50)
     password = forms.CharField(widget=forms.PasswordInput)
-from django import forms
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
-import re
-
 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
@@ -62,3 +58,4 @@ class CustomUserCreationForm(UserCreationForm):
             )
 
         return pwd
+    
