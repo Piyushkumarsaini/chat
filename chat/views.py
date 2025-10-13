@@ -103,3 +103,6 @@ def chat_view(request, username):
 		'room_name': room_name,
 	})
 
+
+def lobby_view(request):
+    return render(request, 'chat_app/lobby.html')
