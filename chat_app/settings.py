@@ -68,7 +68,9 @@ TEMPLATES = [
     },
 ]
 
+WSGI_APPLICATION = 'chat_app.wsgi.application'
 ASGI_APPLICATION = 'chat_app.asgi.application'
+
 
 # Channel layer (for WebSocket communication)
 CHANNEL_LAYERS = {
