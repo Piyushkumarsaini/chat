@@ -1,3 +1,96 @@
+ASGI_APPLICATION = 'chat_app.asgi.application'
+
+
+# Channel layer (for WebSocket communication)
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    },
+}
+
+======================= asgi.py ========================
+# asgi.py (project level)
+
+import os
+import django
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack 
+from channels.security.websocket import AllowedHostsOriginValidator
+from django.core.asgi import get_asgi_application
+import chat.routing
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chat_app.settings')
+django.setup()
+
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket": AllowedHostsOriginValidator(
+        AuthMiddlewareStack(
+        URLRouter(
+            chat.routing.websocket_urlpatterns
+        ))
+    ),
+})
+
+
+
+
+<script>
+    const roomName = "{{ room_name }}";
+    const sender = "{{ current_user.id }}";
+    const receiver = "{{ receiver.id }}";
+
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const message = data.message;
+        const senderId = data.sender;
+
+        const newMsg = document.createElement('div');
+        newMsg.className = senderId == sender ? 'message sent' : 'message received';
+        newMsg.style.cssText = `
+            margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;
+            ${senderId == sender
+                ? 'background:#dcf8c6;margin-left:auto;text-align:right;'
+                : 'background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;'}
+        `;
+        newMsg.innerHTML = `<div>${message}</div>`;
+        document.querySelector("#message-list").appendChild(newMsg);
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Socket closed unexpectedly');
+    };
+
+    document.querySelector("#chat-form").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const input = document.querySelector("#chat-message-input");
+        const message = input.value;
+        chatSocket.send(JSON.stringify({
+            'message': message,
+            'sender': sender,
+            'receiver': receiver
+        }));
+        input.value = '';
+    });
+</script>
+
+
+# chat_app/routing.py
+
+from django.urls import path
+from . import consumers
+
+websocket_urlpatterns = [
+    path("ws/chat/<str:room_name>/", consumers.ChatConsumer.as_asgi()),
+]
+
+
+
+
 # chat_app/consumers.py
 
 import json
