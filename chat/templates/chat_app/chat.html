@@ -1,69 +1,148 @@
 {% extends 'chat_app/base.html' %}
 {% block title %}Chat with {{ receiver.name }}{% endblock %}
 {% block content %}
-    <div class="chat-container" style="max-width:600px;margin:20px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;flex-direction:column;height:70vh;">
-        <div class="chat-header" style="background:#075e54;color:#fff;padding:16px;font-size:1.2em;border-top-left-radius:8px;border-top-right-radius:8px;">Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;</div>
-        <div class="chat-messages" style="flex:1;padding:16px;overflow-y:auto;background:#ece5dd;">
-            {% for msg in messages %}
-                <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}" style="margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;{% if msg.sender.id == current_user.id %}background:#dcf8c6;margin-left:auto;text-align:right;{% else %}background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;{% endif %}">
-                    <div>{{ msg.content|linebreaksbr }}</div>
-                    <small style="color:#888;">{{ msg.timestamp|date:"H:i d M Y" }}</small>
-                </div>
-            {% empty %}
-                <div style="text-align:center;color:#888;">No messages yet.</div>
-            {% endfor %}
-        </div>
-        <form id="chat-form" method="post" class="chat-input" style="display:flex;padding:16px;background:#f7f7f7;border-bottom-left-radius:8px;border-bottom-right-radius:8px;">
-            {% csrf_token %}
-            <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required style="flex:1;resize:none;border-radius:8px;border:1px solid #ccc;padding:8px;font-size:1em;"></textarea>
-            <button id="chat-message-submit" type="submit" style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:8px 20px;margin-left:8px;font-size:1em;cursor:pointer;">Send</button>
-        </form>
-        <script>
-            const roomName = "{{ room_name }}";
-            const senderId = "{{ current_user.id }}";
-            const receiverId = "{{ receiver.id }}";
-
-            const chatSocket = new WebSocket(
-                'ws://' + window.location.host +
-                '/ws/chat/' + roomName + '/'
-            );
-
-            chatSocket.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                const message = data.message;
-                const isSender = data.sender_id == senderId;
-
-                const msgDiv = document.createElement('div');
-                msgDiv.classList.add('message');
-                msgDiv.classList.add(isSender ? 'sent' : 'received');
-                msgDiv.style.cssText = `
-                    margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;
-                    ${isSender ? 'background:#dcf8c6;margin-left:auto;text-align:right;' : 'background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;'}
-                `;
-                msgDiv.innerHTML = `<div>${message}</div><small style="color:#888;">Just now</small>`;
-                document.querySelector('.chat-messages').appendChild(msgDiv);
-            };
-
-            chatSocket.onclose = function(e) {
-                console.error('Chat socket closed unexpectedly');
-            };
-
-            document.querySelector('#chat-form').onsubmit = function(e) {
-                e.preventDefault();
-                const inputField = document.querySelector('#chat-message-input');
-                const message = inputField.value;
-
-                chatSocket.send(JSON.stringify({
-                    'message': message,
-                    'sender_id': senderId,
-                    'receiver_id': receiverId
-                }));
-
-                inputField.value = '';
-            };
-    </script>
-
+<div class="chat-container"
+     style="max-width:600px;margin:20px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;flex-direction:column;height:70vh;">
+    
+    <!-- Chat Header -->
+    <div class="chat-header"
+         style="background:#075e54;color:#fff;padding:16px;font-size:1.2em;border-top-left-radius:8px;border-top-right-radius:8px;">
+        Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
     </div>
 
-    <!-- WebSocket disabled for now — chat uses normal form POST. JS removed. -->
+    <!-- Chat Messages -->
+    <div class="chat-messages" id="chat-messages"
+         style="flex:1;padding:16px;overflow-y:auto;background:#ece5dd;">
+        {% for msg in messages %}
+            <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
+                 style="margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;
+                        {% if msg.sender.id == current_user.id %}background:#dcf8c6;margin-left:auto;text-align:right;
+                        {% else %}background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;
+                        {% endif %}">
+                <div>{{ msg.content|linebreaksbr }}</div>
+                <small style="color:#888;">{{ msg.timestamp|date:"H:i d M Y" }}</small>
+            </div>
+        {% empty %}
+            <div style="text-align:center;color:#888;">No messages yet.</div>
+        {% endfor %}
+    </div>
+
+    <!-- Chat Input Form -->
+    <form id="chat-form" method="post" class="chat-input"
+          style="display:flex;padding:16px;background:#f7f7f7;border-bottom-left-radius:8px;border-bottom-right-radius:8px;">
+        {% csrf_token %}
+        <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required
+                  style="flex:1;resize:none;border-radius:8px;border:1px solid #ccc;padding:8px;font-size:1em;"></textarea>
+        <button id="chat-message-submit" type="submit"
+                style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:8px 20px;margin-left:8px;font-size:1em;cursor:pointer;">
+            Send
+        </button>
+    </form>
+
+</div>
+
+<!-- JavaScript -->
+<script>
+    const roomName = "{{ room_name }}";
+    const senderId = "{{ current_user.id }}";
+    const receiverId = "{{ receiver.id }}";
+    const receiverNumber = "{{ receiver.number }}";
+
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+    );
+
+    const messagesContainer = document.getElementById('chat-messages');
+
+    // Auto-scroll to bottom on page load
+    window.onload = function () {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    };
+
+    // Auto-scroll on receiving new message
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        const message = data.message;
+        const isSender = data.sender_id == senderId;
+
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message');
+        msgDiv.classList.add(isSender ? 'sent' : 'received');
+        msgDiv.style.cssText = `
+            margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;
+            ${isSender ? 'background:#dcf8c6;margin-left:auto;text-align:right;' : 'background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;'}
+        `;
+        msgDiv.innerHTML = `<div>${message}</div><small style="color:#888;">Just now</small>`;
+        messagesContainer.appendChild(msgDiv);
+
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    };
+
+    chatSocket.onclose = function (e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    document.getElementById('chat-form').onsubmit = function (e) {
+        e.preventDefault();
+        const inputField = document.getElementById('chat-message-input');
+        const message = inputField.value.trim();
+
+        if (message !== '') {
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'sender_id': senderId,
+                'receiver_id': receiverId
+            }));
+            inputField.value = '';
+        }
+    };
+
+    // Lazy Loading: Load older messages on scroll to top
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMore = true;
+
+    messagesContainer.addEventListener('scroll', async function () {
+        if (messagesContainer.scrollTop === 0 && !isLoading && hasMore) {
+            isLoading = true;
+            currentPage += 1;
+
+            const oldScrollHeight = messagesContainer.scrollHeight;
+
+            try {
+                const response = await fetch(`/chat/${receiverNumber}/messages/?page=${currentPage}`);
+                const data = await response.json();
+
+                if (data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        const isSender = msg.sender_id == senderId;
+                        const msgDiv = document.createElement('div');
+                        msgDiv.classList.add('message');
+                        msgDiv.classList.add(isSender ? 'sent' : 'received');
+                        msgDiv.style.cssText = `
+                            margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;
+                            ${isSender ? 'background:#dcf8c6;margin-left:auto;text-align:right;' : 'background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;'}
+                        `;
+                        msgDiv.innerHTML = `<div>${msg.content}</div><small style="color:#888;">${new Date(msg.timestamp).toLocaleString()}</small>`;
+                        messagesContainer.insertBefore(msgDiv, messagesContainer.firstChild);
+                    });
+
+                    // Maintain scroll position after loading
+                    const newScrollHeight = messagesContainer.scrollHeight;
+                    messagesContainer.scrollTop = newScrollHeight - oldScrollHeight;
+
+                    if (!data.has_more) {
+                        hasMore = false;  // ✅ Mark end reached
+                    }
+                } else {
+                    hasMore = false;
+                }
+            } catch (error) {
+                console.error("Failed to load older messages:", error);
+            }
+
+            isLoading = false;
+        }
+    });
+</script>
 {% endblock %}

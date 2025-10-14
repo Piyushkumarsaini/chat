@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import ChatUser, ChatMessage
 from .forms import SignupForm, LoginForm
 from django.db.models import Q
-
+from django.core.paginator import Paginator
+from django.http import JsonResponse
 
 def get_logged_in_user(request):
 	user_id = request.session.get('chat_user_id')
@@ -103,6 +104,38 @@ def chat_view(request, username):
 		'room_name': room_name,
 	})
 
+MESSAGES_PER_PAGE = 20
+
+def load_messages(request, username):
+	user = get_logged_in_user(request)
+	if not user:
+		return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+	receiver = get_object_or_404(ChatUser, number=username)
+
+	page = int(request.GET.get('page', 1))
+
+	messages_qs = ChatMessage.objects.filter(
+		(Q(sender=user) & Q(receiver=receiver)) |
+		(Q(sender=receiver) & Q(receiver=user))
+	).order_by('-timestamp')
+
+	paginator = Paginator(messages_qs, MESSAGES_PER_PAGE)
+	if page > paginator.num_pages:
+		return JsonResponse({
+			'messages': [],
+			'has_more': False
+		})
+	page_obj = paginator.get_page(page)
+
+	messages = list(page_obj.object_list.values(
+		'content', 'sender_id', 'receiver_id', 'timestamp'
+	))
+
+	return JsonResponse({
+		'messages': messages[::-1],  # Reverse to show oldest at top
+		'has_more': page_obj.has_next()
+	})
 
 def lobby_view(request):
     return render(request, 'chat_app/lobby.html')

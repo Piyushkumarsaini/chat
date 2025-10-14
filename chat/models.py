@@ -16,6 +16,8 @@ class ChatMessage(models.Model):
 	receiver = models.ForeignKey(ChatUser, related_name='received_chat_messages', on_delete=models.CASCADE)
 	content = models.TextField()
 	timestamp = models.DateTimeField(auto_now_add=True)
+	is_delivered = models.BooleanField(default=False)
+	is_seen = models.BooleanField(default=False)
 
 	def __str__(self):
 		return f"{self.sender.number} -> {self.receiver.number}: {self.content[:20]}"
