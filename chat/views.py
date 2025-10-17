@@ -85,7 +85,7 @@ def chat_view(request, username):
 	messages = ChatMessage.objects.filter(
 		(Q(sender=user) & Q(receiver=receiver)) |
 		(Q(sender=receiver) & Q(receiver=user))
-	).order_by('timestamp')
+	).order_by('dates', 'times')
 
 	# canonical room name for two users: sorted ids joined by underscore
 	ids = sorted([str(user.id), str(receiver.id)])

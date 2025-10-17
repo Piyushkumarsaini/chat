@@ -15,7 +15,8 @@ class ChatMessage(models.Model):
 	sender = models.ForeignKey(ChatUser, related_name='sent_chat_messages', on_delete=models.CASCADE)
 	receiver = models.ForeignKey(ChatUser, related_name='received_chat_messages', on_delete=models.CASCADE)
 	content = models.TextField()
-	timestamp = models.DateTimeField(auto_now_add=True)
+	dates = models.DateField(auto_now_add=True)
+	times = models.TimeField(auto_now_add=True)
 	is_delivered = models.BooleanField(default=False)
 	is_seen = models.BooleanField(default=False)
 
