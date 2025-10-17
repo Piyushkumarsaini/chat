@@ -82,10 +82,18 @@ def chat_view(request, username):
 
 	receiver = get_object_or_404(ChatUser, number=username)
 
+	unread_messages = ChatMessage.objects.filter(
+	sender=receiver,
+	receiver=user,
+	status__in=['sent', 'delivered']
+	)
+    
+	unread_messages.update(status='read')
+
 	messages = ChatMessage.objects.filter(
 		(Q(sender=user) & Q(receiver=receiver)) |
 		(Q(sender=receiver) & Q(receiver=user))
-	).order_by('dates', 'times')
+	).order_by('timestamp')
 
 	# canonical room name for two users: sorted ids joined by underscore
 	ids = sorted([str(user.id), str(receiver.id)])
@@ -94,7 +102,7 @@ def chat_view(request, username):
 	if request.method == 'POST':
 		content = request.POST.get('content')
 		if content:
-			ChatMessage.objects.create(sender=user, receiver=receiver, content=content)
+			ChatMessage.objects.create(sender=user, receiver=receiver, content=content, status='sent')
 		return redirect('chat', username=receiver.number)
 
 	return render(request, 'chat_app/chat.html', {

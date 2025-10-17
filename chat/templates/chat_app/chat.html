@@ -6,26 +6,89 @@
     
     <!-- Chat Header -->
     <div class="chat-header"
-         style="background:#075e54;color:#fff;padding:16px;font-size:1.2em;border-top-left-radius:8px;border-top-right-radius:8px;">
+        style="background:#075e54; color:#fff; padding:16px;
+                font-size:1.2em; border-top-left-radius:8px; border-top-right-radius:8px;">
         Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
     </div>
 
     <!-- Chat Messages -->
     <div class="chat-messages" id="chat-messages"
-         style="flex:1;padding:16px;overflow-y:auto;background:#ece5dd;">
-        {% for msg in messages %}
-            <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
-                 style="margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;
-                        {% if msg.sender.id == current_user.id %}background:#dcf8c6;margin-left:auto;text-align:right;
-                        {% else %}background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;
-                        {% endif %}">
-                <div>{{ msg.content|linebreaksbr }}</div>
-                <small style="color:#888;">{{ msg.timestamp|date:"H:i d M Y" }}</small>
-            </div>
-        {% empty %}
-            <div style="text-align:center;color:#888;">No messages yet.</div>
-        {% endfor %}
+        style="flex:1; padding:16px; overflow-y:auto; background:#ece5dd;">
+
+        {% if messages %}
+            {% regroup messages by timestamp.date as date_groups %}
+            {% with today=now|date:"Y-m-d" yesterday=now|date:"Y-m-d"|add:"-1 day" %}
+            
+                {% for day in date_groups %}
+                    {% with day_date=day.grouper|date:"Y-m-d" %}
+                        <!-- Date Header -->
+                        <div class="date-header sticky-date"
+                            style="
+                                position: sticky;
+                                top: 0;
+                                background: #e5e5e5;
+                                padding: 5px 10px;
+                                text-align: center;
+                                font-size: 0.9em;
+                                font-weight: bold;
+                                z-index: 10;
+                                margin: 10px auto;
+                                border-radius: 10px;
+                                width: fit-content;
+                            ">
+                            {% if day_date == today %}
+                                Today
+                            {% elif day_date == yesterday %}
+                                Yesterday
+                            {% else %}
+                                {{ day.grouper|date:"F j, Y" }}
+                            {% endif %}
+                        </div>
+                    {% endwith %}
+
+                    <!-- Messages under that date -->
+                    {% for msg in day.list %}
+                        <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
+                            style="
+                                margin-bottom: 12px;
+                                max-width: 70%;
+                                padding: 10px 16px;
+                                border-radius: 18px;
+                                clear: both;
+                                {% if msg.sender.id == current_user.id %}
+                                    background: #dcf8c6;
+                                    margin-left: auto;
+                                    text-align: right;
+                                {% else %}
+                                    background: #fff;
+                                    margin-right: auto;
+                                    text-align: left;
+                                    border: 1px solid #ddd;
+                                {% endif %}
+                            ">
+                            <div>{{ msg.content|linebreaksbr }}</div>
+                            <small style="color:#888;">
+                                {{ msg.timestamp|time:"H:i" }}
+                                {% if msg.sender.id == current_user.id %}
+                                    {% if msg.status == 'sent' %}
+                                        <span style="color:gray; margin-left:5px;">✓</span>
+                                    {% elif msg.status == 'delivered' %}
+                                        <span style="color:gray; margin-left:5px;">✓✓</span>
+                                    {% elif msg.status == 'read' %}
+                                        <span style="color:#4fc3f7; margin-left:5px;">✓✓</span>  {# Blue ticks #}
+                                    {% endif %}
+                                {% endif %}
+                            </small>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+
+            {% endwith %}
+        {% else %}
+            <div style="text-align:center; color:#888;">No messages yet.</div>
+        {% endif %}
     </div>
+
 
     <!-- Chat Input Form -->
     <form id="chat-form" method="post" class="chat-input"
@@ -72,7 +135,14 @@
             margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;
             ${isSender ? 'background:#dcf8c6;margin-left:auto;text-align:right;' : 'background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;'}
         `;
-        msgDiv.innerHTML = `<div>${message}</div><small style="color:#888;">Just now</small>`;
+
+        let ticks = '';
+        if (isSender) {
+            if (data.status === 'sent') ticks = '✓';
+            else if (data.status === 'delivered') ticks = '✓✓';
+            else if (data.status === 'read') ticks = '<span style="color:blue;">✓✓</span>';
+        }
+        msgDiv.innerHTML = `<div>${message}</div><small style="color:#888;">Just now ${ticks}</small>`;
         messagesContainer.appendChild(msgDiv);
 
         messagesContainer.scrollTop = messagesContainer.scrollHeight;

@@ -15,10 +15,16 @@ class ChatMessage(models.Model):
 	sender = models.ForeignKey(ChatUser, related_name='sent_chat_messages', on_delete=models.CASCADE)
 	receiver = models.ForeignKey(ChatUser, related_name='received_chat_messages', on_delete=models.CASCADE)
 	content = models.TextField()
-	dates = models.DateField(auto_now_add=True)
-	times = models.TimeField(auto_now_add=True)
+	timestamp = models.DateTimeField(auto_now_add=True)
 	is_delivered = models.BooleanField(default=False)
 	is_seen = models.BooleanField(default=False)
+ 
+	STATUS_CHOICES = [
+			('sent', 'Sent'),
+			('delivered', 'Delivered'),
+			('read', 'Read'),
+		]
+	status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='sent')
 
 	def __str__(self):
 		return f"{self.sender.number} -> {self.receiver.number}: {self.content[:20]}"
