@@ -39,6 +39,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         action = data.get('action')
         
+        # When frontend connects, it must first identify itself
+        if action == 'identify_user':
+            self.user_id = data.get('user_id')
+            if self.user_id:
+                await self.set_user_online(self.user_id, True)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'presence_update',
+                        'user_id': self.user_id,
+                        'is_online': True
+                    }
+                )
+            return
+        
         if action == 'send_message':
             message = data.get('message')
             sender_id = data.get('sender_id')
@@ -120,9 +135,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
                 
-        # -----------------------
-        # OPTIONAL: heartbeat / touch presence
-        # -----------------------
+
+        # Heartbeat (for refreshing last seen)
         elif action == 'heartbeat':
             uid = data.get('user_id')
             if uid:
