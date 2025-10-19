@@ -11,13 +11,6 @@ class ChatUser(models.Model):
 	def __str__(self):
 		return f"{self.name} <{self.number}>"
 
-class Presence(models.Model):
-    user = models.ForeignKey(ChatUser, on_delete=models.CASCADE)
-    is_online = models.BooleanField(default=False)
-    last_seen = models.DateTimeField(null=True, blank=True)
-    device_name = models.CharField(max_length=150, null=True, blank=True)
-
-
 class ChatMessage(models.Model):
 	sender = models.ForeignKey(ChatUser, related_name='sent_chat_messages', on_delete=models.CASCADE)
 	receiver = models.ForeignKey(ChatUser, related_name='received_chat_messages', on_delete=models.CASCADE)

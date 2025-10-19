@@ -10,6 +10,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f"chat_{self.room_name}"
 
+
+        # store connected user's id if client tells us later
+        self.user_id = None
+        
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
@@ -17,7 +21,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         # Leave room group
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-
+        
+        if getattr(self, 'user_id', None):
+            await self.set_user_online(self.user_id, False)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'presence_update',
+                    'user_id': self.user_id,
+                    'is_online': False,
+                    'last_seen': str(timezone.now()),
+                }
+            )
 
     # Receive message from WebSocket
     async def receive(self, text_data):
@@ -56,6 +71,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if not receiver_id:
                 return
 
+            # remember this connection's user id (so we can mark offline on disconnect)
+            self.user_id = receiver_id
+            
+            
+            # Mark user online for presence
+            await self.set_user_online(receiver_id, True)
+            
+            
+            # Notify the room that this user is online (so other participant's UI updates)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'presence_update',
+                    'user_id': receiver_id,
+                    'is_online': True,
+                }
+            )
+            
+            # Also mark unread messages delivered to this receiver (existing behavior)
             delivered_ids = await self.mark_messages_delivered(receiver_id)
             if delivered_ids:
                 # notify the room about status updates
@@ -85,6 +119,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         'new_status': 'read',
                     }
                 )
+                
+        # -----------------------
+        # OPTIONAL: heartbeat / touch presence
+        # -----------------------
+        elif action == 'heartbeat':
+            uid = data.get('user_id')
+            if uid:
+                await self.touch(uid)
+
+
     # Handlers for group events
     async def chat_message(self, event):
         # forward new message to WebSocket client
@@ -107,6 +151,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'new_status': event.get('new_status'),
         }))
         
+        
+    async def presence_update(self, event):
+        # forward presence update to clients in this room
+        # event contains: user_id, is_online (bool), optional last_seen
+        await self.send(text_data=json.dumps({
+            'event': 'presence_update',
+            'user_id': event.get('user_id'),
+            'is_online': event.get('is_online'),
+            'last_seen': event.get('last_seen', None),
+        }))
+
         
     # Database helpers (sync -> async)
     @database_sync_to_async
@@ -147,3 +202,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
             now = timezone.now()
             qs.update(status='read', seen_at=now)
         return ids
+    
+    @database_sync_to_async
+    def set_user_online(self, user_id, is_online):
+        """
+        Set ChatUser.is_online and last_seen (when setting offline).
+        """
+        try:
+            u = ChatUser.objects.get(id=user_id)
+            u.is_online = is_online
+            if not is_online:
+                u.last_seen = timezone.now()
+            u.save()
+        except ChatUser.DoesNotExist:
+            pass
+
+    @database_sync_to_async
+    def touch(self, user_id):
+        """
+        Update last_seen (used by heartbeat).
+        """
+        try:
+            u = ChatUser.objects.get(id=user_id)
+            u.last_seen = timezone.now()
+            u.save()
+        except ChatUser.DoesNotExist:
+            pass
