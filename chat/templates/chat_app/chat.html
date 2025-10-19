@@ -126,16 +126,40 @@
         if (isOnline) {
             dot.style.background = '#2ecc71'; // green
             text.textContent = 'Online';
+            return;
+        }
+
+        // Offline state
+        dot.style.background = '#bdc3c7';
+        if (!lastSeen) {
+            text.textContent = 'Offline';
+            return;
+        }
+        
+        const lastSeenDate = new Date(lastSeen);
+        const now = new Date();
+        const diffMs = now - lastSeenDate;
+        const diffMinutes = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        const formattedTime = lastSeenDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        const formattedDate = lastSeenDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+        if (diffMinutes < 1) {
+            text.textContent = 'Last seen just now';
+        } else if (diffMinutes < 60) {
+            text.textContent = `Last seen ${diffMinutes} min ago`;
+        } else if (diffHours < 24 && now.getDate() === lastSeenDate.getDate()) {
+            text.textContent = `Last seen today ${formattedTime}`;
+        } else if (diffDays === 1) {
+            text.textContent = `Last seen yesterday ${formattedTime}`;
         } else {
-            dot.style.background = '#bdc3c7'; // gray
-            if (lastSeen) {
-                const ts = new Date(lastSeen).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:true});
-                text.textContent = `Last seen ${ts}`;
-            } else {
-                text.textContent = 'Offline';
-            }
+            text.textContent = `Last seen on ${formattedDate}, ${formattedTime}`;
         }
     }
+
+
     chatSocket.onopen = function () {
         console.log("WebSocket connected");
 
@@ -221,11 +245,6 @@
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') markReadNow();
     });
-
-    // Optional: scroll to bottom on load
-    window.onload = function () {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    };
 
     // Optional: scroll to bottom on load
     window.onload = function () {
