@@ -88,6 +88,29 @@ class StatusMixin:
             'new_status': event.get('new_status'),
         }))
         
+class DeleteupdateMixin:
+    @database_sync_to_async
+    def delete_message(self, msg_id, for_everyone=False):
+        try:
+            msg = ChatMessage.objects.get(id=msg_id)
+            if for_everyone:
+                msg.content = "[This message was deleted]"
+            else:
+                msg.deleted_for_receiver = True
+            msg.save()
+            return msg.id
+        except ChatMessage.DoesNotExist:
+            return None
+
+
+    async def delete_message_event(self, event):
+        await self.send(text_data=json.dumps({
+            'event': 'delete_message',
+            'msg_id': event.get('msg_id'),
+            'for_everyone': event.get('for_everyone')
+        }))
+    
+    
 class ChatConsumer(PresenceMixin, MessagingMixin, StatusMixin, AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
@@ -213,3 +236,22 @@ class ChatConsumer(PresenceMixin, MessagingMixin, StatusMixin, AsyncWebsocketCon
             uid = data.get('user_id')
             if uid:
                 await self.touch(uid)
+                
+                
+        # Delete Message
+        elif action == 'delete_message':
+            msg_id = data.get('msg_id')
+            for_everyone = data.get('for_everyone', False)
+            if not msg_id:
+                return
+
+            deleted_id = await self.delete_message(msg_id, for_everyone)
+            if deleted_id:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'message_deleted',
+                        'msg_id': deleted_id,
+                        'for_everyone': for_everyone
+                    }
+                )
