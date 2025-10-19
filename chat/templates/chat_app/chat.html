@@ -4,13 +4,20 @@
 <div class="chat-container"
      style="max-width:600px;margin:20px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;flex-direction:column;height:70vh;">
 
-    <!-- Chat Header -->
+    <!-- Chat Header with presence -->
     <div class="chat-header"
         style="background:#075e54; color:#fff; padding:16px;
-                font-size:1.2em; border-top-left-radius:8px; border-top-right-radius:8px;">
-        Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
-    </div>
+                font-size:1.2em; border-top-left-radius:8px; border-top-right-radius:8px; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+            Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
+        </div>
 
+        <!-- Presence indicator -->
+        <div id="presence-{{ receiver.id }}" style="display:flex;align-items:center;gap:8px;">
+            <span id="presence-dot-{{ receiver.id }}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#bdc3c7;"></span>
+            <small id="presence-text-{{ receiver.id }}" style="color:#e0f2f1;">Checking...</small>
+        </div>
+    </div>
     <!-- Chat Messages -->
     <div class="chat-messages" id="chat-messages"
         style="flex:1; padding:16px; overflow-y:auto; background:#ece5dd;">
@@ -108,6 +115,27 @@
         return msgDiv;
     }
 
+    // Update presence UI in header for the receiver
+    function updatePresenceUI(userId, isOnline, lastSeen) {
+        // we only show presence of the chat partner in header (otherUserId)
+        if (Number(userId) !== otherUserId) return;
+        const dot = document.getElementById(`presence-dot-${otherUserId}`);
+        const text = document.getElementById(`presence-text-${otherUserId}`);
+        if (!dot || !text) return;
+
+        if (isOnline) {
+            dot.style.background = '#2ecc71'; // green
+            text.textContent = 'Online';
+        } else {
+            dot.style.background = '#bdc3c7'; // gray
+            if (lastSeen) {
+                const ts = new Date(lastSeen).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:true});
+                text.textContent = `Last seen ${ts}`;
+            } else {
+                text.textContent = 'Offline';
+            }
+        }
+    }
     chatSocket.onopen = function () {
         console.log("WebSocket connected");
 
@@ -153,6 +181,9 @@
             const ids = data.msg_ids || [];
             const newStatus = data.new_status;
             ids.forEach(id => updateTicksForMsg(id, newStatus));
+        } else if (eventType === 'presence_update') {
+            // presence update: contains user_id, is_online, optional last_seen
+            updatePresenceUI(data.user_id, data.is_online, data.last_seen);
         }
     };
 
@@ -194,6 +225,20 @@
     // Optional: scroll to bottom on load
     window.onload = function () {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    };
+
+    // Optional: scroll to bottom on load
+    window.onload = function () {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // set initial presence UI from server-rendered data if available
+        {% if receiver.is_online %}
+            updatePresenceUI({{ receiver.id }}, true, null);
+        {% elif receiver.last_seen %}
+            updatePresenceUI({{ receiver.id }}, false, "{{ receiver.last_seen|date:'c' }}");
+        {% else %}
+            updatePresenceUI({{ receiver.id }}, false, null);
+        {% endif %}
     };
 </script>
 {% endblock %}

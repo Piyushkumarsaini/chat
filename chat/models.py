@@ -6,10 +6,10 @@ class ChatUser(models.Model):
 	name = models.CharField(max_length=150)
 	number = models.CharField(max_length=50, unique=True)
 	password = models.CharField(max_length=128)  # store hashed or plain depending on implementation
-
+	is_online = models.BooleanField(default=False)
+	last_seen = models.DateTimeField(null=True, blank=True)
 	def __str__(self):
 		return f"{self.name} <{self.number}>"
-
 
 class ChatMessage(models.Model):
 	sender = models.ForeignKey(ChatUser, related_name='sent_chat_messages', on_delete=models.CASCADE)
