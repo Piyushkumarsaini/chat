@@ -1,77 +1,258 @@
 {% extends 'chat_app/base.html' %}
 {% block title %}Chat with {{ receiver.name }}{% endblock %}
 {% block content %}
-<div class="chat-container"
-     style="max-width:600px;margin:20px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;flex-direction:column;height:70vh;">
+
+<style>
+/* ===================== Overall Layout ===================== */
+.chat-container {
+  max-width: 800px;
+  margin: 20px auto;
+  background: #ece5dd;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  height: 85vh;
+  overflow: hidden;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* ===================== Header ===================== */
+.chat-header {
+  background: #075e54;
+  color: #fff;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-header img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.chat-header-name {
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.chat-header-status {
+  font-size: 0.9em;
+  color: #cfd8dc;
+}
+
+.chat-header-icons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+
+/* ===================== Messages Area ===================== */
+.chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #ece5dd;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Date header */
+.date-header {
+  align-self: center;
+  background: #d9fdd3;
+  color: #333;
+  padding: 5px 12px;
+  border-radius: 10px;
+  font-size: 0.85em;
+  margin: 10px 0;
+}
+
+/* Message bubble base */
+.message {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  position: relative;
+  word-wrap: break-word;
+}
+
+/* Received message (left) */
+.message.received {
+  background: #fff;
+  align-self: flex-start;
+  border-top-left-radius: 0;
+}
+
+/* Sent message (right) */
+.message.sent {
+  background: #dcf8c6;
+  align-self: flex-end;
+  border-top-right-radius: 0;
+}
+
+/* Deleted message */
+.message.deleted {
+  font-style: italic;
+  color: #777;
+  background: #e6e6e6;
+}
+
+/* Timestamp */
+.message small {
+  display: block;
+  text-align: right;
+  font-size: 0.75em;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* Double ticks (sent/delivered/read) */
+.ticks {
+  margin-left: 5px;
+  color: #777;
+}
+.ticks.read {
+  color: #34b7f1;
+}
+
+/* Hover delete icon */
+.delete-btn {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  background: transparent;
+  border: none;
+  color: #777;
+  cursor: pointer;
+  display: none;
+}
+.message.sent:hover .delete-btn {
+  display: block;
+}
+
+/* ===================== Input Section ===================== */
+.chat-input {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background: #f0f0f0;
+  border-top: 1px solid #ccc;
+}
+
+.chat-input textarea {
+  flex: 1;
+  resize: none;
+  border-radius: 20px;
+  border: none;
+  padding: 10px 15px;
+  font-size: 1em;
+  outline: none;
+}
+
+.chat-input button {
+  background: #25d366;
+  border: none;
+  color: white;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  font-size: 1.2em;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.chat-input button:hover {
+  background: #20b358;
+}
+</style>
+
+<!-- ===================== MAIN CHAT CONTAINER ===================== -->
+<div class="chat-container">
 
     <!-- Chat Header with presence -->
-    <div class="chat-header"
-        style="background:#075e54; color:#fff; padding:16px;
-                font-size:1.2em; border-top-left-radius:8px; border-top-right-radius:8px; display:flex; align-items:center; justify-content:space-between;">
+    <div class="chat-header">
+        <div class="chat-header-left">
+        <img src="https://www.gravatar.com/avatar/{{ receiver.id }}?d=identicon" alt="profile">
         <div>
-            Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
-        </div>
+            <div class="chat-header-name">{{ receiver.name }}</div>
 
-        <!-- Presence indicator -->
-        <div id="presence-{{ receiver.id }}" style="display:flex;align-items:center;gap:8px;">
-            <span id="presence-dot-{{ receiver.id }}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#bdc3c7;"></span>
-            <small id="presence-text-{{ receiver.id }}" style="color:#e0f2f1;">Checking...</small>
+            <!-- Presence Section (restored from your old code) -->
+            <div id="presence-{{ receiver.id }}" class="presence-status">
+            <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
+            <small id="presence-text-{{ receiver.id }}">Checking...</small>
+            </div>
         </div>
     </div>
-    <!-- Chat Messages -->
-    <div class="chat-messages" id="chat-messages"
-        style="flex:1; padding:16px; overflow-y:auto; background:#ece5dd;">
 
-        {% if messages %}
-            {% regroup messages by timestamp.date as date_groups %}
-            {% with today=now|date:"Y-m-d" %}
-                {% for day in date_groups %}
-                    <div class="date-header sticky-date"
-                         style="position: sticky; top: 0; background: #e5e5e5; padding: 5px 10px; text-align: center; font-size: 0.9em; font-weight: bold; z-index: 10; margin: 10px auto; border-radius: 10px; width: fit-content;">
-                        {{ day.grouper|date:"F j, Y" }}
-                    </div>
-
-                    {% for msg in day.list %}
-                        <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
-                             data-msg-id="{{ msg.id }}"
-                            style="margin-bottom: 12px; max-width: 70%; padding: 10px 16px; border-radius: 18px; clear: both;
-                                {% if msg.sender.id == current_user.id %}
-                                    background: #dcf8c6; margin-left: auto; text-align: right;
-                                {% else %}
-                                    background: #fff; margin-right: auto; text-align: left; border: 1px solid #ddd;
-                                {% endif %}">
-                            <div>{{ msg.content|linebreaksbr }}</div>
-                            <small style="color:#888;">
-                                {{ msg.timestamp|time:"H:i" }}
-                                {% if msg.sender.id == current_user.id %}
-                                    <span class="ticks" style="margin-left:5px;">
-                                    {% if msg.status == 'sent' %}✓
-                                    {% elif msg.status == 'delivered' %}✓✓
-                                    {% elif msg.status == 'read' %}<span style="color:#4fc3f7;">✓✓</span>
-                                    {% endif %}
-                                    </span>
-                                {% endif %}
-                            </small>
-                        </div>
-                    {% endfor %}
-                {% endfor %}
-            {% endwith %}
-        {% else %}
-            <div style="text-align:center; color:#888;">No messages yet.</div>
-        {% endif %}
+    <div class="chat-header-icons">
+      <i class="fa fa-search"></i>
+      <i class="fa fa-phone"></i>
+      <i class="fa fa-video"></i>
+      <i class="fa fa-ellipsis-v"></i>
     </div>
+  </div>
 
-    <!-- Chat Input Form -->
-    <form id="chat-form" method="post" class="chat-input"
-          style="display:flex;padding:16px;background:#f7f7f7;border-bottom-left-radius:8px;border-bottom-right-radius:8px;">
-        {% csrf_token %}
-        <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required
-                  style="flex:1;resize:none;border-radius:8px;border:1px solid #ccc;padding:8px;font-size:1em;"></textarea>
-        <button id="chat-message-submit" type="submit"
-                style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:8px 20px;margin-left:8px;font-size:1em;cursor:pointer;">
-            Send
-        </button>
-    </form>
+  <!-- MESSAGES -->
+  <div class="chat-messages" id="chat-messages">
+
+    {% if messages %}
+      {% regroup messages by timestamp.date as date_groups %}
+      {% for day in date_groups %}
+        <div class="date-header">
+          {{ day.grouper|date:"l, F j" }}
+        </div>
+
+        {% for msg in day.list %}
+          <div class="message 
+                      {% if msg.is_deleted %}deleted{% elif msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
+               data-msg-id="{{ msg.id }}">
+            {% if msg.is_deleted %}
+              <em>This message has been deleted</em>
+            {% else %}
+              {{ msg.content|linebreaksbr }}
+            {% endif %}
+
+            {% if msg.sender.id == current_user.id %}
+              <button class="delete-btn" title="Delete">🗑️</button>
+            {% endif %}
+
+            <small>
+              {{ msg.timestamp|time:"h:i A" }}
+              {% if msg.sender.id == current_user.id %}
+                <span class="ticks 
+                  {% if msg.status == 'read' %}read{% endif %}">
+                  {% if msg.status == 'sent' %}✓{% elif msg.status == 'delivered' %}✓✓{% elif msg.status == 'read' %}✓✓{% endif %}
+                </span>
+              {% endif %}
+            </small>
+          </div>
+        {% endfor %}
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center; color:#888;">No messages yet.</div>
+    {% endif %}
+  </div>
+
+  <!-- INPUT AREA -->
+  <form id="chat-form" method="post" class="chat-input">
+    {% csrf_token %}
+    <textarea id="chat-message-input" name="content" rows="1" placeholder="Type your message..." required></textarea>
+    <button id="chat-message-submit" type="submit">
+      <i class="fa fa-paper-plane"></i>
+    </button>
+  </form>
 
 </div>
 
