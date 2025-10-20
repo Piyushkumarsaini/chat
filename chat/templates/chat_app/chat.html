@@ -53,8 +53,19 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  font-size: 1.2em;
+}
+
+/* New text-based placeholders */
+.header-text {
+  font-size: 14px;
+  color: #e0f2f1;
   cursor: pointer;
+  transition: color 0.2s, transform 0.1s;
+}
+
+.header-text:hover {
+  color: #ffffff;
+  transform: scale(1.05);
 }
 
 /* ===================== Messages Area ===================== */
@@ -83,9 +94,10 @@
   max-width: 75%;
   padding: 10px 14px;
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
   position: relative;
   word-wrap: break-word;
+  transition: background 0.2s;
 }
 
 /* Received message (left) */
@@ -127,7 +139,7 @@
   color: #34b7f1;
 }
 
-/* Hover delete icon */
+/* Hover delete icon (old feature) */
 .delete-btn {
   position: absolute;
   top: 5px;
@@ -142,39 +154,127 @@
   display: block;
 }
 
+/* ===================== NEW: Hover Actions (Reply, Emoji, More) ===================== */
+.message-actions {
+  display: none;
+  position: absolute;
+  top: -24px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  padding: 4px 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  gap: 10px;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+/* Show on hover */
+.message:hover .message-actions {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-3px);
+}
+
+/* Action text style */
+.action-text {
+  color: #075e54;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.1s;
+}
+.action-text:hover {
+  color: #128c7e;
+  transform: scale(1.05);
+}
+
 /* ===================== Input Section ===================== */
 .chat-input {
+  background-color: #f0f2f5;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+}
+
+/* Inner input bar */
+.chat-input-inner {
   display: flex;
   align-items: center;
-  padding: 10px 15px;
-  background: #f0f0f0;
-  border-top: 1px solid #ccc;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border-radius: 25px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Message typing box */
 .chat-input textarea {
-  flex: 1;
-  resize: none;
-  border-radius: 20px;
+  flex-grow: 1;
   border: none;
-  padding: 10px 15px;
-  font-size: 1em;
   outline: none;
+  resize: none;
+  font-size: 15px;
+  background: transparent;
+  padding: 5px 10px;
+  margin: 0 5px;
+  min-height: 20px;
+  max-height: 100px;
+  overflow-y: auto;
 }
 
+/* Send button */
 .chat-input button {
-  background: #25d366;
+  background: none;
   border: none;
-  color: white;
-  border-radius: 50%;
-  width: 45px;
-  height: 45px;
-  font-size: 1.2em;
-  margin-left: 10px;
+  color: #075e54;
+  font-size: 16px;
   cursor: pointer;
+  padding: 6px 10px;
+  transition: color 0.2s;
 }
 
 .chat-input button:hover {
-  background: #20b358;
+  color: #128c7e;
+}
+
+/* Attach + Emoji texts */
+.attach-text,
+.emoji-text {
+  font-size: 14px;
+  color: #777;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s, transform 0.1s;
+}
+
+/* Hover effects for both sides */
+.attach-text:hover,
+.emoji-text:hover {
+  color: #555;
+  transform: scale(1.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .chat-input-inner {
+    padding: 6px 10px;
+  }
+
+  .chat-input textarea {
+    font-size: 14px;
+  }
+
+  .chat-input button {
+    font-size: 14px;
+    padding: 4px 8px;
+  }
+
+  .attach-text,
+  .emoji-text {
+    font-size: 13px;
+  }
 }
 </style>
 
@@ -197,8 +297,8 @@
     </div>
 
     <div class="chat-header-icons">
-      <i class="fa fa-search"></i>
-      <i class="fa fa-ellipsis-v"></i>
+        <span class="header-text">search</span>
+        <span class="header-text">menu</span>
     </div>
   </div>
 
@@ -226,6 +326,13 @@
               <button class="delete-btn" title="Delete">🗑️</button>
             {% endif %}
 
+              <!-- Hover action buttons -->
+            <div class="message-actions">
+                <span class="action-text">reply</span>
+                <span class="action-text">emoji</span>
+                <span class="action-text">more</span>
+            </div>
+
             <small>
               {{ msg.timestamp|time:"h:i A" }}
               {% if msg.sender.id == current_user.id %}
@@ -243,13 +350,17 @@
     {% endif %}
   </div>
 
-  <!-- INPUT AREA -->
-  <form id="chat-form" method="post" class="chat-input">
+    <!-- INPUT AREA -->
+    <form id="chat-form" method="post" class="chat-input">
     {% csrf_token %}
-    <textarea id="chat-message-input" name="content" rows="1" placeholder="Type your message..." required></textarea>
-    <button id="chat-message-submit" type="submit">
-      <i class="fa fa-paper-plane"></i>
-    </button>
+        <div class="chat-input-inner">
+            <span class="attach-text">attach</span>
+            <textarea id="chat-message-input" name="content" rows="1" placeholder="Type your message..." required></textarea>
+            <span class="emoji-text">emoji</span>
+            <button id="chat-message-submit" type="submit">
+            Send
+            </button>
+        </div>
   </form>
 
 </div>
