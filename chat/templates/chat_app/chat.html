@@ -18,56 +18,191 @@
 }
 
 /* ===================== Header ===================== */
-.chat-header {
-  background: #075e54;
-  color: #fff;
-  padding: 10px 16px;
+.chat-wrapper {
   display: flex;
-  align-items: center;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: #f8f9fa;
+  overflow: hidden;
+}
+
+/* CHAT SECTION */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.4s ease;
+}
+
+.chat-header {
+  display: flex;
   justify-content: space-between;
+  align-items: center;
+  background: #ededed;
+  padding: 10px 16px;
+  border-bottom: 1px solid #ddd;
 }
 
 .chat-header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  cursor: pointer;
 }
 
-.chat-header img {
+.chat-header-left img {
   width: 40px;
   height: 40px;
   border-radius: 50%;
 }
 
 .chat-header-name {
-  font-size: 1.1em;
   font-weight: 600;
 }
 
-.chat-header-status {
-  font-size: 0.9em;
-  color: #cfd8dc;
+.chat-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
 }
 
-.chat-header-icons {
+/* PROFILE PANEL (RIGHT SLIDE) */
+.profile-panel {
+  position: absolute;
+  top: 0;
+  right: -100%;
+  width: 350px;
+  height: 100%;
+  background: white;
+  border-left: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.4s ease;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+}
+
+.profile-panel.open {
+  right: 0;
+}
+
+.profile-header {
   display: flex;
   align-items: center;
-  gap: 15px;
+  background: #ededed;
+  padding: 10px 16px;
+  border-bottom: 1px solid #ddd;
+  gap: 10px;
 }
 
-/* New text-based placeholders */
-.header-text {
-  font-size: 14px;
-  color: #e0f2f1;
+.back-btn {
+  font-size: 22px;
   cursor: pointer;
-  transition: color 0.2s, transform 0.1s;
 }
 
-.header-text:hover {
-  color: #ffffff;
-  transform: scale(1.05);
+.profile-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ddd;
 }
 
+.tab {
+  padding: 6px 10px;
+  background: #e9ecef;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.tab:hover {
+  background: #d6d8db;
+}
+
+.tab.active {
+  background: #128c7e;
+  color: white;
+}
+
+.profile-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.profile-pic {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+
+.danger-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.danger-btn:hover {
+  background: #b52a37;
+}
+
+  /* SEARCH BAR */
+  .chat-search-bar {
+    display: none;
+    align-items: center;
+    background: #f0f2f5;
+    padding: 8px 12px;
+    border-bottom: 1px solid #ddd;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 8px 12px;
+    font-size: 15px;
+    border-radius: 20px;
+    background: white;
+  }
+
+  .search-cancel {
+    margin-left: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    color: #666;
+  }
+
+  .search-cancel:hover {
+    color: #111;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 /* ===================== Messages Area ===================== */
 .chat-messages {
   flex: 1;
@@ -191,6 +326,124 @@
   transform: scale(1.05);
 }
 
+/* Dropdown for edit/delete */
+.more-menu {
+  position: absolute;
+  top: -60px;
+  right: -50px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  display: none;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.more-menu span {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+}
+
+.more-menu span:hover {
+  background: #f2f2f2;
+  color: #000;
+}
+
+/* Deleted message style */
+.message.deleted .message-text {
+  color: gray;
+  font-style: italic;
+}
+
+/* Emoji menu */
+.emoji-menu {
+  position: absolute;
+  top: -60px;
+  right: 30px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  padding: 6px 8px;
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  z-index: 20;
+}
+
+.emoji-menu .emoji {
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.emoji-menu .emoji:hover {
+  transform: scale(1.3);
+}
+
+/* Reply preview box */
+.reply-preview {
+  background: #e9f5f2;
+  border-left: 4px solid #25d366;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #075e54;
+  animation: fadeIn 0.2s ease;
+}
+
+.reply-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.reply-label {
+  font-weight: 600;
+  color: #128c7e;
+}
+
+.reply-message {
+  font-style: italic;
+  color: #333;
+}
+
+.reply-cancel {
+  margin-left: auto;
+  cursor: pointer;
+  font-size: 14px;
+  color: #888;
+  transition: color 0.2s;
+}
+
+.reply-cancel:hover {
+  color: #000;
+}
+
+/* Replied info text inside message */
+.replied-info {
+  font-size: 12px;
+  color: #555;
+  margin-top: 4px;
+  opacity: 0.85;
+}
+
+/* Small fade animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
 /* ===================== Input Section ===================== */
 .chat-input {
   background-color: #f0f2f5;
@@ -276,93 +529,377 @@
     font-size: 13px;
   }
 }
+
+
+/* Attach menu styling */
+.attach-menu {
+  position: absolute;
+  bottom: 55px; /* above input box */
+  left: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 8px 0;
+  display: none;
+  flex-direction: column;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+.attach-item {
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.attach-item:hover {
+  background: #f2f2f2;
+  transform: scale(1.02);
+}
+
+/* Position fix for chat area */
+.chat-input-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9f9f9;
+  padding: 8px 12px;
+  border-radius: 25px;
+}
+
+/* Attach button style */
+.attach-text {
+  color: #075e54;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.attach-text:hover {
+  color: #128c7e;
+  transform: scale(1.05);
+  transition: 0.2s;
+}
+/* Emoji picker root */
+.emoji-picker-root {
+  position: absolute;
+  bottom: 70px; /* adjust to sit above input */
+  right: 20px;
+  width: 360px;
+  max-width: calc(100% - 40px);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(18, 18, 18, 0.12);
+  z-index: 999;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* Top tabs */
+.emoji-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  background: linear-gradient(180deg, rgba(250,250,250,1), rgba(245,245,245,1));
+}
+.emoji-tab {
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #444;
+  user-select: none;
+}
+.emoji-tab.active {
+  background: #e6f8f1;
+  color: #056e50;
+  box-shadow: inset 0 -2px 0 rgba(5,110,80,0.06);
+}
+
+/* Search row */
+.emoji-search-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  align-items: center;
+}
+.emoji-search-row input {
+  flex: 1;
+  border: 1px solid #eee;
+  padding: 8px 10px;
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+}
+.emoji-search-row .small-hint {
+  color: #888;
+  font-size: 13px;
+}
+
+/* category nav */
+.emoji-cats {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid #fafafa;
+}
+.emoji-cat-btn {
+  padding: 6px 8px;
+  font-size: 13px;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  color: #444;
+}
+.emoji-cat-btn.active {
+  background: #f2fffb;
+  border-color: #e1f7ee;
+  color: #056e50;
+}
+
+/* content area */
+.emoji-content {
+  max-height: 260px;
+  overflow: auto;
+  padding: 10px;
+}
+
+/* emoji grid */
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 8px;
+}
+.emoji-item {
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: transform .12s ease, background .12s;
+}
+.emoji-item:hover {
+  transform: scale(1.25);
+  background: rgba(5,110,80,0.04);
+}
+
+/* GIFs / stickers placeholder */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.media-item {
+  height: 70px;
+  background: #f6f6f6;
+  border-radius: 8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#aaa;
+  font-size:12px;
+}
+
+/* footer small note */
+.emoji-footer {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #777;
+  border-top: 1px solid #fafafa;
+  background: #fff;
+}
+/* small responsive */
+@media (max-width: 480px) {
+  .emoji-picker-root { right: 8px; left: 8px; width: auto; bottom: 80px; }
+  .emoji-grid { grid-template-columns: repeat(8, 1fr); }
+}
+
+/* reply/attach overlap handling: ensure position above input */
+.chat-input-inner { position: relative; }
 </style>
 
 <!-- ===================== MAIN CHAT CONTAINER ===================== -->
-<div class="chat-container">
+<div class="chat-wrapper">
 
-    <!-- Chat Header with presence -->
-    <div class="chat-header">
-        <div class="chat-header-left">
+  <!-- 🟢 MAIN CHAT SECTION -->
+  <div class="chat-main" id="chat-main">
+    
+    <!-- Chat Header -->
+    <div class="chat-header" id="chat-header">
+      <div class="chat-header-left" id="user-profile-trigger">
         <img src="https://www.gravatar.com/avatar/{{ receiver.id }}?d=identicon" alt="profile">
         <div>
-            <div class="chat-header-name">{{ receiver.name }}</div>
-
-            <!-- Presence Section (restored from your old code) -->
-            <div id="presence-{{ receiver.id }}" class="presence-status">
+          <div class="chat-header-name">{{ receiver.name }}</div>
+          <div id="presence-{{ receiver.id }}" class="presence-status">
             <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
             <small id="presence-text-{{ receiver.id }}">Checking...</small>
-            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="chat-header-icons">
+        <span class="header-text" id="search-icon">🔍</span>
+      </div>
     </div>
 
-    <div class="chat-header-icons">
-        <span class="header-text">search</span>
-        <span class="header-text">menu</span>
+    <!-- Search Bar -->
+    <div class="chat-search-bar" id="search-bar">
+      <input type="text" id="search-input" placeholder="Search messages" class="search-input" />
+      <span class="search-cancel" id="search-cancel">✖</span>
     </div>
-  </div>
 
-  <!-- MESSAGES -->
-  <div class="chat-messages" id="chat-messages">
+    <!-- Chat Body -->
+    <div class="chat-body" id="chat-messages">
+      {% if messages %}
+        {% regroup messages by timestamp.date as date_groups %}
+        {% for day in date_groups %}
+          <div class="date-header">{{ day.grouper|date:"l, F j" }}</div>
 
-    {% if messages %}
-      {% regroup messages by timestamp.date as date_groups %}
-      {% for day in date_groups %}
-        <div class="date-header">
-          {{ day.grouper|date:"l, F j" }}
-        </div>
+          {% for msg in day.list %}
+            <div class="message 
+                {% if msg.is_deleted %}deleted{% elif msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
+                data-msg-id="{{ msg.id }}">
 
-        {% for msg in day.list %}
-          <div class="message 
-                      {% if msg.is_deleted %}deleted{% elif msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
-               data-msg-id="{{ msg.id }}">
-            {% if msg.is_deleted %}
-              <em>This message has been deleted</em>
-            {% else %}
-              {{ msg.content|linebreaksbr }}
-            {% endif %}
+              {% if msg.is_deleted %}
+                <em>This message has been deleted</em>
+              {% else %}
+                {{ msg.content|linebreaksbr }}
+              {% endif %}
 
-            {% if msg.sender.id == current_user.id %}
-              <button class="delete-btn" title="Delete">🗑️</button>
-            {% endif %}
+              {% if msg.sender.id == current_user.id %}
+                <button class="delete-btn" title="Delete">🗑️</button>
+              {% endif %}
 
-              <!-- Hover action buttons -->
-            <div class="message-actions">
+              <!-- Hover Action Buttons -->
+              <div class="message-actions">
                 <span class="action-text">reply</span>
                 <span class="action-text">emoji</span>
                 <span class="action-text">more</span>
-            </div>
+              </div>
 
-            <small>
-              {{ msg.timestamp|time:"h:i A" }}
-              {% if msg.sender.id == current_user.id %}
-                <span class="ticks 
-                  {% if msg.status == 'read' %}read{% endif %}">
-                  {% if msg.status == 'sent' %}✓{% elif msg.status == 'delivered' %}✓✓{% elif msg.status == 'read' %}✓✓{% endif %}
-                </span>
-              {% endif %}
-            </small>
-          </div>
+              <!-- More Dropdown -->
+              <div class="more-menu">
+                <span class="edit-btn">✏️ Edit</span>
+                <span class="delete-btn">🗑️ Delete</span>
+              </div>
+
+              <!-- Emoji Shortcut Menu -->
+              <div class="emoji-menu">
+                <span class="emoji">🙂</span>
+                <span class="emoji">😂</span>
+                <span class="emoji">❤️</span>
+                <span class="emoji">😍</span>
+                <span class="emoji">😎</span>
+                <span class="emoji">👍</span>
+                <span class="emoji">🙏</span>
+                <span class="emoji">💬</span>
+              </div>
+
+              <!-- Time + Status -->
+              <small>
+                {{ msg.timestamp|time:"h:i A" }}
+                {% if msg.sender.id == current_user.id %}
+                  <span class="ticks {% if msg.status == 'read' %}read{% endif %}">
+                    {% if msg.status == 'sent' %}✓{% elif msg.status == 'delivered' %}✓✓{% elif msg.status == 'read' %}✓✓{% endif %}
+                  </span>
+                {% endif %}
+              </small>
+            </div>
+          {% endfor %}
         {% endfor %}
-      {% endfor %}
-    {% else %}
-      <div style="text-align:center; color:#888;">No messages yet.</div>
-    {% endif %}
-  </div>
+      {% else %}
+        <div class="no-messages">No messages yet.</div>
+      {% endif %}
+    </div>
 
     <!-- INPUT AREA -->
     <form id="chat-form" method="post" class="chat-input">
-    {% csrf_token %}
-        <div class="chat-input-inner">
-            <span class="attach-text">attach</span>
-            <textarea id="chat-message-input" name="content" rows="1" placeholder="Type your message..." required></textarea>
-            <span class="emoji-text">emoji</span>
-            <button id="chat-message-submit" type="submit">
-            Send
-            </button>
-        </div>
-  </form>
+      {% csrf_token %}
+      <div class="chat-input-inner">
 
+        <!-- Attach Button -->
+        <span class="attach-text">attach</span>
+        <div class="attach-menu" id="attach-menu">
+          <div class="attach-item" data-type="photos">📷 Photos</div>
+          <div class="attach-item" data-type="videos">🎥 Videos</div>
+          <div class="attach-item" data-type="camera">📸 Camera</div>
+          <div class="attach-item" data-type="document">📄 Document</div>
+        </div>
+
+        <!-- Message Input -->
+        <textarea id="chat-message-input" name="content" rows="1" placeholder="Type your message..." required></textarea>
+
+        <!-- Emoji Button -->
+        <span class="emoji-text" id="emoji-btn">emoji</span>
+
+        <!-- Emoji Picker -->
+        <div class="emoji-picker-root" id="emoji-picker" aria-hidden="true">
+          <div class="emoji-tabs">
+            <div class="emoji-tab active" data-tab="emoji">Emoji</div>
+            <div class="emoji-tab" data-tab="gifs">GIFs</div>
+            <div class="emoji-tab" data-tab="stickers">Stickers</div>
+          </div>
+
+          <div class="emoji-search-row">
+            <input id="emoji-search" placeholder="Search emoji..." aria-label="Search emoji">
+            <div class="small-hint">Recent • Categories</div>
+          </div>
+
+          <div class="emoji-cats" id="emoji-cats"></div>
+          <div class="emoji-content" id="emoji-content"></div>
+          <div class="emoji-footer">Tip: Click an emoji to insert it.</div>
+        </div>
+
+        <!-- Send Button -->
+        <button id="chat-message-submit" type="submit">Send</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 🟡 USER PROFILE SLIDE PANEL -->
+  <div class="profile-panel" id="profile-panel" aria-hidden="true">
+    <div class="profile-header">
+      <span id="close-profile" class="back-btn">←</span>
+      <h3>{{ receiver.name }}</h3>
+    </div>
+
+    <div class="profile-tabs">
+      <span class="tab active" data-tab="overview">Overview</span>
+      <span class="tab" data-tab="media">Media</span>
+      <span class="tab" data-tab="files">Files</span>
+      <span class="tab" data-tab="links">Links</span>
+      <span class="tab" data-tab="delete">Delete Chat</span>
+      <span class="tab" data-tab="block">Block User</span>
+    </div>
+
+    <div class="profile-content">
+      <div class="tab-content active" id="overview">
+        <img src="https://www.gravatar.com/avatar/{{ receiver.id }}?d=identicon" alt="profile" class="profile-pic">
+        <h4>{{ receiver.name }}</h4>
+        <p><strong>Status:</strong> Online</p>
+        <p><strong>About:</strong> Hey there! I'm using ChatApp 💬</p>
+      </div>
+      <div class="tab-content" id="media"><h4>Media</h4><p>No media shared yet.</p></div>
+      <div class="tab-content" id="files"><h4>Files</h4><p>No files found.</p></div>
+      <div class="tab-content" id="links"><h4>Links</h4><p>No links shared yet.</p></div>
+      <div class="tab-content" id="delete"><h4>Delete Chat</h4><button class="danger-btn">Delete All Messages</button></div>
+      <div class="tab-content" id="block"><h4>Block User</h4><button class="danger-btn">Block {{ receiver.name }}</button></div>
+    </div>
+  </div>
 </div>
 
 <!-- JavaScript -->
@@ -549,5 +1086,583 @@
             updatePresenceUI({{ receiver.id }}, false, null);
         {% endif %}
     };
+
+    // FRONTEND ONLY: Edit/Delete UI
+
+    document.addEventListener('click', (e) => {
+        const target = e.target;
+
+        // Toggle More Menu
+        if (target.classList.contains('action-text') && target.textContent.trim().toLowerCase() === 'more') {
+            const message = target.closest('.message');
+            const menu = message.querySelector('.more-menu');
+
+            // Close other open menus
+            document.querySelectorAll('.more-menu').forEach(m => {
+                if (m !== menu) m.style.display = 'none';
+            });
+
+            // Toggle current menu
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        // Click outside message → close menus
+        if (!target.closest('.message')) {
+            document.querySelectorAll('.more-menu').forEach(menu => menu.style.display = 'none');
+        }
+
+        // Edit button
+        if (target.classList.contains('edit-btn')) {
+            const msg = target.closest('.message').querySelector('.message-text');
+            const oldText = msg.innerText;
+            const newText = prompt('Edit your message:', oldText);
+            if (newText && newText !== oldText) {
+                msg.innerText = newText + ' (edited)';
+            }
+            target.closest('.more-menu').style.display = 'none';
+        }
+
+        // Delete button
+        if (target.classList.contains('delete-btn')) {
+            const msgDiv = target.closest('.message');
+            if (confirm('Are you sure you want to delete this message?')) {
+                msgDiv.classList.add('deleted');
+                msgDiv.querySelector('.message-text').innerText = 'This message was deleted';
+            }
+            target.closest('.more-menu').style.display = 'none';
+        }
+    });
+
+     // FRONTEND ONLY: Emoji + More
+      document.addEventListener('click', (e) => {
+          const target = e.target;
+
+          // --- Toggle More Menu ---
+          if (target.classList.contains('more-btn')) {
+              const message = target.closest('.message');
+              const menu = message.querySelector('.more-menu');
+              document.querySelectorAll('.more-menu, .emoji-menu').forEach(m => {
+                  if (m !== menu) m.style.display = 'none';
+              });
+              menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+          }
+
+          // --- Toggle Emoji Menu ---
+          if (target.classList.contains('emoji-btn')) {
+              const message = target.closest('.message');
+              const menu = message.querySelector('.emoji-menu');
+              document.querySelectorAll('.more-menu, .emoji-menu').forEach(m => {
+                  if (m !== menu) m.style.display = 'none';
+              });
+              menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+          }
+
+          // --- Click outside message: close all menus ---
+          if (!target.closest('.message')) {
+              document.querySelectorAll('.more-menu, .emoji-menu').forEach(menu => menu.style.display = 'none');
+          }
+
+          // --- Edit message ---
+          if (target.classList.contains('edit-btn')) {
+              const msg = target.closest('.message').querySelector('.message-text');
+              const oldText = msg.innerText;
+              const newText = prompt('Edit your message:', oldText);
+              if (newText && newText !== oldText) {
+                  msg.innerText = newText + ' (edited)';
+              }
+              target.closest('.more-menu').style.display = 'none';
+          }
+
+          // --- Delete message ---
+          if (target.classList.contains('delete-btn')) {
+              const msgDiv = target.closest('.message');
+              if (confirm('Are you sure you want to delete this message?')) {
+                  msgDiv.classList.add('deleted');
+                  msgDiv.querySelector('.message-text').innerText = 'This message was deleted';
+              }
+              target.closest('.more-menu').style.display = 'none';
+          }
+
+          // --- Emoji click ---
+          if (target.classList.contains('emoji')) {
+              const emoji = target.textContent;
+              const inputField = document.getElementById('chat-message-input');
+              inputField.value += emoji;
+              target.closest('.emoji-menu').style.display = 'none';
+              inputField.focus();
+          }
+      });
+
+      // FRONTEND ONLY: Reply Feature
+      let replyToMessage = null; // stores which message is being replied to
+
+      // 1️⃣ Handle reply click
+      document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("action-text") && e.target.innerText === "reply") {
+          const message = e.target.closest(".message");
+          const messageText = message.querySelector(".message-text").innerText;
+
+          // Set reply target
+          replyToMessage = messageText;
+
+          // Show reply preview box above input
+          showReplyPreview(messageText);
+        }
+      });
+
+      // 2️⃣ Show reply preview box
+      function showReplyPreview(text) {
+        const inputArea = document.querySelector("#chat-form");
+        let replyBox = document.querySelector(".reply-preview");
+
+        // If already visible, remove before showing again
+        if (replyBox) replyBox.remove();
+
+        replyBox = document.createElement("div");
+        replyBox.className = "reply-preview";
+        replyBox.innerHTML = `
+          <div class="reply-text">
+            <span class="reply-label">Replying to:</span>
+            <span class="reply-message">${text}</span>
+            <span class="reply-cancel">✖</span>
+          </div>
+        `;
+        inputArea.insertAdjacentElement("beforebegin", replyBox);
+
+        // Cancel reply on click
+        replyBox.querySelector(".reply-cancel").addEventListener("click", () => {
+          replyBox.remove();
+          replyToMessage = null;
+        });
+      }
+
+      // 3️⃣ When sending message, check if it's a reply
+      const chatForm = document.getElementById("chat-form");
+      chatForm.addEventListener("submit", (e) => {
+        const input = document.getElementById("chat-message-input");
+        if (replyToMessage) {
+          // Append reply info to message visually (frontend only)
+          const replyInfo = document.createElement("div");
+          replyInfo.className = "replied-info";
+          replyInfo.innerText = `↪ Replied to: ${replyToMessage}`;
+          const lastMessage = document.querySelector("#chat-messages .message:last-child");
+          if (lastMessage) lastMessage.appendChild(replyInfo);
+        }
+
+        // Remove reply preview after sending
+        const preview = document.querySelector(".reply-preview");
+        if (preview) preview.remove();
+        replyToMessage = null;
+      });
+
+
+      // ==============================
+      // FRONTEND ONLY: Attach Menu Feature
+      // ==============================
+
+      // Toggle attach menu
+      document.addEventListener("click", (e) => {
+        const attachMenu = document.querySelector(".attach-menu");
+
+        // If "attach" clicked
+        if (e.target.classList.contains("attach-text")) {
+          attachMenu.style.display =
+            attachMenu.style.display === "flex" ? "none" : "flex";
+        }
+        // If clicked outside menu or attach button → close menu
+        else if (!e.target.closest(".attach-menu") && !e.target.classList.contains("attach-text")) {
+          attachMenu.style.display = "none";
+        }
+
+        // Handle click on each attach item
+        if (e.target.classList.contains("attach-item")) {
+          const type = e.target.dataset.type;
+          alert(`You selected: ${type}`); // temporary alert (for backend integration later)
+          attachMenu.style.display = "none";
+        }
+      });
+
+      // ==============================
+      // FRONTEND ONLY: Emoji Picker Feature
+      // ==============================
+
+      document.addEventListener("click", (e) => {
+        const emojiMenu = document.querySelector(".emoji-menu");
+        const inputField = document.getElementById("chat-message-input");
+
+        // Toggle emoji panel on emoji button click
+        if (e.target.classList.contains("emoji-text")) {
+          emojiMenu.style.display =
+            emojiMenu.style.display === "flex" ? "none" : "flex";
+        }
+        // Insert emoji when clicked
+        else if (e.target.classList.contains("emoji")) {
+          const emoji = e.target.textContent;
+          inputField.value += emoji; // append to textarea
+          emojiMenu.style.display = "none";
+          inputField.focus();
+        }
+        // Close if clicked outside
+        else if (!e.target.closest(".emoji-menu") && !e.target.classList.contains("emoji-text")) {
+          emojiMenu.style.display = "none";
+        }
+      });
+
+
+      (function () {
+      // ----------------------------
+      // Data: a small curated emoji set with names for search
+      // Add more emojis as needed
+      // ----------------------------
+      const emojiCategories = {
+        "Recent": [],
+        "Smileys & People": [
+          {c:'😀', n:'grinning face'}, {c:'😃', n:'smiling face'}, {c:'😄', n:'smile'}, {c:'😁', n:'beaming face'},
+          {c:'😆', n:'laugh'}, {c:'😂', n:'joy'}, {c:'🙂', n:'slightly smiling face'}, {c:'😉', n:'wink'},
+          {c:'😍', n:'heart eyes'}, {c:'🤔', n:'thinking'}
+        ],
+        "Animals & Nature": [
+          {c:'🐶', n:'dog'}, {c:'🐱', n:'cat'}, {c:'🦊', n:'fox'}, {c:'🐼', n:'panda'},
+          {c:'🦁', n:'lion'}, {c:'🐵', n:'monkey'}, {c:'🌲', n:'tree'}, {c:'🌸', n:'flower'}
+        ],
+        "Food & Drink": [
+          {c:'🍎', n:'apple'}, {c:'🍕', n:'pizza'}, {c:'🍔', n:'burger'}, {c:'🍣', n:'sushi'},
+          {c:'☕', n:'coffee'}, {c:'🍩', n:'donut'}, {c:'🍪', n:'cookie'}, {c:'🍺', n:'beer'}
+        ],
+        "Activity": [
+          {c:'⚽', n:'soccer'}, {c:'🏀', n:'basketball'}, {c:'🏆', n:'trophy'}, {c:'🎮', n:'gamepad'},
+          {c:'🎧', n:'headphones'}, {c:'🎸', n:'guitar'}, {c:'🎬', n:'clapperboard'}, {c:'🎲', n:'dice'}
+        ],
+        "Travel & Places": [
+          {c:'✈️', n:'plane'}, {c:'🚗', n:'car'}, {c:'🏝️', n:'island'}, {c:'🏨', n:'hotel'},
+          {c:'🗺️', n:'map'}, {c:'🚆', n:'train'}, {c:'⛺', n:'camping'}, {c:'🚀', n:'rocket'}
+        ],
+        "Objects": [
+          {c:'📱', n:'phone'}, {c:'💡', n:'idea'}, {c:'🔑', n:'key'}, {c:'⌚', n:'watch'},
+          {c:'💻', n:'laptop'}, {c:'📷', n:'camera'}, {c:'💰', n:'money'}, {c:'🧭', n:'compass'}
+        ],
+        "Symbols": [
+          {c:'❤️', n:'heart'}, {c:'✔️', n:'check'}, {c:'❗', n:'exclamation'}, {c:'⚠️', n:'warning'},
+          {c:'🔔', n:'bell'}, {c:'⭐', n:'star'}, {c:'🔥', n:'fire'}, {c:'✨', n:'sparkles'}
+        ],
+        "Flags": [
+          {c:'🇮🇳', n:'india'}, {c:'🇺🇸', n:'usa'}, {c:'🇬🇧', n:'uk'}, {c:'🇨🇦', n:'canada'},
+          {c:'🇯🇵', n:'japan'}, {c:'🇦🇺', n:'australia'}, {c:'🇩🇪', n:'germany'}, {c:'🇫🇷', n:'france'}
+        ]
+      };
+
+      // DOM refs
+      const picker = document.getElementById('emoji-picker');
+      const emojiContent = document.getElementById('emoji-content');
+      const emojiCats = document.getElementById('emoji-cats');
+      const emojiSearch = document.getElementById('emoji-search');
+
+      // toggler element (your emoji button)
+      const emojiToggle = document.querySelector('.emoji-text') || document.querySelector('.emoji-btn') || null;
+      // input textarea
+      const inputField = document.getElementById('chat-message-input');
+
+      // Recent management (localStorage key)
+      const RECENT_KEY = 'chat_recent_emojis_v1';
+      function loadRecents() {
+        try {
+          const raw = localStorage.getItem(RECENT_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+      }
+      function saveRecent(emojiChar) {
+        if (!emojiChar) return;
+        let rec = loadRecents();
+        rec = rec.filter(e => e !== emojiChar);
+        rec.unshift(emojiChar);
+        rec = rec.slice(0, 20);
+        localStorage.setItem(RECENT_KEY, JSON.stringify(rec));
+      }
+
+      // initialize categories UI
+      const categories = Object.keys(emojiCategories);
+      function renderCategoryButtons() {
+        emojiCats.innerHTML = '';
+        categories.forEach((cat, idx) => {
+          // skip Recent initially; will be shown as button too
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'emoji-cat-btn' + (idx === 0 ? ' active' : '');
+          btn.dataset.category = cat;
+          btn.textContent = idx === 0 ? 'Recent' : cat.split(' & ')[0];
+          emojiCats.appendChild(btn);
+        });
+      }
+
+      // render emoji grid helper
+      function renderEmojiGrid(list) {
+        emojiContent.innerHTML = '';
+        const grid = document.createElement('div');
+        grid.className = 'emoji-grid';
+        if (!list || list.length === 0) {
+          emojiContent.innerHTML = '<div style="color:#999;padding:16px">No emojis to show.</div>';
+          return;
+        }
+        list.forEach(item => {
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = 'emoji-item';
+          el.title = item.n || '';
+          el.textContent = item.c;
+          el.dataset.name = item.n || '';
+          grid.appendChild(el);
+        });
+        emojiContent.appendChild(grid);
+      }
+
+      // render gifs placeholder
+      function renderGifs() {
+        emojiContent.innerHTML = '';
+        const grid = document.createElement('div');
+        grid.className = 'media-grid';
+        for (let i = 0; i < 8; i++) {
+          const mi = document.createElement('div');
+          mi.className = 'media-item';
+          mi.textContent = 'GIF';
+          grid.appendChild(mi);
+        }
+        emojiContent.appendChild(grid);
+      }
+
+      // render stickers placeholder
+      function renderStickers() {
+        emojiContent.innerHTML = '';
+        const grid = document.createElement('div');
+        grid.className = 'media-grid';
+        for (let i = 0; i < 8; i++) {
+          const mi = document.createElement('div');
+          mi.className = 'media-item';
+          mi.textContent = 'Sticker';
+          grid.appendChild(mi);
+        }
+        emojiContent.appendChild(grid);
+      }
+
+      // helper to open/close picker
+      function togglePicker(show) {
+        if (typeof show === 'boolean') {
+          picker.style.display = show ? 'flex' : 'none';
+          picker.setAttribute('aria-hidden', show ? 'false' : 'true');
+          if (show) emojiSearch.focus();
+        } else {
+          const isHidden = getComputedStyle(picker).display === 'none';
+          togglePicker(isHidden);
+        }
+      }
+
+      // insert emoji at cursor/caret for textarea
+      function insertAtCaret(el, text) {
+        if (!el) return;
+        el.focus();
+        const start = el.selectionStart || 0;
+        const end = el.selectionEnd || 0;
+        const orig = el.value;
+        el.value = orig.slice(0, start) + text + orig.slice(end);
+        const cursor = start + text.length;
+        el.setSelectionRange(cursor, cursor);
+      }
+
+      // initial render (default: Emoji tab + Recent)
+      function initPicker() {
+        renderCategoryButtons();
+        // load recents into category map
+        const recents = loadRecents();
+        emojiCategories['Recent'] = recents.map(c => ({c: c, n: 'recent'}));
+        // render default: Recent if recents else first real category
+        if (recents.length) renderEmojiGrid(emojiCategories['Recent']);
+        else renderEmojiGrid(emojiCategories['Smileys & People']);
+      }
+
+      // category click handler
+      emojiCats.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('.emoji-cat-btn');
+        if (!btn) return;
+        // set active class
+        emojiCats.querySelectorAll('.emoji-cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const cat = btn.dataset.category;
+        if (cat === 'Recent') {
+          const rec = loadRecents().map(c => ({c: c, n: 'recent'}));
+          renderEmojiGrid(rec.length ? rec : []);
+        } else {
+          renderEmojiGrid(emojiCategories[cat] || []);
+        }
+        emojiSearch.value = '';
+      });
+
+      // Tab switching (emoji / gifs / stickers)
+      document.querySelectorAll('.emoji-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.emoji-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          const tabName = tab.dataset.tab;
+          if (tabName === 'emoji') {
+            // show categories + emoji content
+            document.getElementById('emoji-cats').style.display = 'flex';
+            const recs = loadRecents();
+            if (recs.length) renderEmojiGrid(recs.map(c => ({c, n:'recent'})));
+            else renderEmojiGrid(emojiCategories['Smileys & People']);
+          } else {
+            // hide categories for media tabs
+            document.getElementById('emoji-cats').style.display = 'none';
+            if (tabName === 'gifs') renderGifs();
+            else renderStickers();
+          }
+          emojiSearch.value = '';
+        });
+      });
+
+      // Search handler
+      emojiSearch.addEventListener('input', (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) {
+          // if empty, show recents or default
+          const activeTab = document.querySelector('.emoji-tab.active').dataset.tab;
+          if (activeTab === 'emoji') {
+            const recs = loadRecents();
+            if (recs.length) renderEmojiGrid(recs.map(c => ({c, n:'recent'})));
+            else renderEmojiGrid(emojiCategories['Smileys & People']);
+          }
+          return;
+        }
+        // search across all emojiCategories except Recent
+        const results = [];
+        Object.keys(emojiCategories).forEach(cat => {
+          if (cat === 'Recent') return;
+          (emojiCategories[cat] || []).forEach(item => {
+            if ((item.n && item.n.toLowerCase().includes(q)) || (item.c && item.c === q)) {
+              results.push(item);
+            }
+          });
+        });
+        // also fuzzy match by name token
+        if (!results.length) {
+          Object.keys(emojiCategories).forEach(cat => {
+            if (cat === 'Recent') return;
+            (emojiCategories[cat] || []).forEach(item => {
+              if (item.n && item.n.toLowerCase().split(' ').some(tok => tok.startsWith(q))) {
+                results.push(item);
+              }
+            });
+          });
+        }
+        renderEmojiGrid(results);
+      });
+
+      // Click handler for emojis / gifs / stickers (delegated)
+      emojiContent.addEventListener('click', (ev) => {
+        const emojiBtn = ev.target.closest('.emoji-item');
+        if (emojiBtn) {
+          const ch = emojiBtn.textContent;
+          insertAtCaret(inputField, ch);
+          saveRecent(ch);
+          // replace recents list in UI
+          emojiCategories['Recent'] = loadRecents().map(c => ({c, n:'recent'}));
+          // keep picker open (WhatsApp mobile sometimes stays open) — here we close
+          // togglePicker(false);
+          // update recents UI quickly
+          const activeTab = document.querySelector('.emoji-tab.active').dataset.tab;
+          if (activeTab === 'emoji') {
+            const recs = loadRecents();
+            if (recs.length) renderEmojiGrid(recs.map(c => ({c, n:'recent'})));
+          }
+          inputField.focus();
+          return;
+        }
+        // media click placeholders
+        const mediaItem = ev.target.closest('.media-item');
+        if (mediaItem) {
+          alert('This is a placeholder. Integrate GIF/Sticker API or file picker in backend to send media.');
+        }
+      });
+
+      // Toggle from the emoji-text button
+      if (emojiToggle) {
+        emojiToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // ensure picker appears and default to emoji tab
+          document.querySelectorAll('.emoji-tab').forEach(t => t.classList.remove('active'));
+          document.querySelector('.emoji-tab[data-tab="emoji"]').classList.add('active');
+          document.getElementById('emoji-cats').style.display = 'flex';
+          const recs = loadRecents();
+          if (recs.length) renderEmojiGrid(recs.map(c => ({c, n:'recent'})));
+          else renderEmojiGrid(emojiCategories['Smileys & People']);
+          togglePicker(true);
+        });
+      }
+
+      // click outside to close picker
+      document.addEventListener('click', (ev) => {
+        if (!ev.target.closest('#emoji-picker') && !ev.target.classList.contains('emoji-text') && !ev.target.classList.contains('emoji-btn')) {
+          togglePicker(false);
+        }
+      });
+
+      // keyboard: Esc to close
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') togglePicker(false);
+      });
+
+      // init
+      initPicker();
+
+      // expose toggle function for debugging if needed
+      window._emojiPickerToggle = togglePicker;
+    })();
+
+      const searchIcon = document.getElementById("search-icon");
+      const searchBar = document.getElementById("search-bar");
+      const searchCancel = document.getElementById("search-cancel");
+      const chatHeader = document.querySelector(".chat-header");
+
+        // Show search bar
+      searchIcon.addEventListener("click", () => {
+        chatHeader.style.display = "none";
+        searchBar.style.display = "flex";
+        document.getElementById("search-input").focus();
+      });
+
+      // Hide search bar
+      searchCancel.addEventListener("click", () => {
+        searchBar.style.display = "none";
+        chatHeader.style.display = "flex";
+      });
+
+      const userProfileTrigger = document.getElementById("user-profile-trigger");
+      const profilePanel = document.getElementById("profile-panel");
+      const closeProfile = document.getElementById("close-profile");
+      const tabs = document.querySelectorAll(".tab");
+      const tabContents = document.querySelectorAll(".tab-content");
+
+      // 🟢 Open Profile Panel
+      userProfileTrigger.addEventListener("click", () => {
+        profilePanel.classList.add("open");
+      });
+
+      // 🔴 Close Profile Panel (back arrow)
+      document.querySelector(".back-btn").addEventListener("click", () => {
+        profilePanel.classList.remove("open");
+      });
+
+      // 🔄 Tabs switching
+      tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+          tabs.forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+
+          const target = tab.getAttribute("data-tab");
+          tabContents.forEach(c => {
+            c.classList.remove("active");
+            if (c.id === target) c.classList.add("active");
+          });
+        });
+      });
+
 </script>
+
 {% endblock %}
