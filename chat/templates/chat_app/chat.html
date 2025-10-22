@@ -21,10 +21,11 @@
     <!-- Chat Messages -->
     <div class="chat-messages"
         id="chat-messages"
+        data-room-name="{{ room_name }}"
+        data-me-id="{{ current_user.id }}"
         data-receiver-id="{{ receiver.id }}"
-        data-receiver-online="{{ receiver.is_online }}"
-        data-receiver-last-seen="{% if receiver.last_seen %}{{ receiver.last_seen|date:'c' }}{% endif %}"
-         data-room-name="{{ room_name }}">
+        data-receiver-online="{{ receiver.is_online|yesno:'true,false' }}"
+        data-receiver-last-seen="{% if receiver.last_seen %}{{ receiver.last_seen|date:'c' }}{% endif %}">
         {% if messages %}
             {% regroup messages by timestamp.date as date_groups %}
             {% with today=now|date:"Y-m-d" %}
