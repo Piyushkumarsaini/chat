@@ -1,53 +1,50 @@
 {% extends 'chat_app/base.html' %}
+{% load static %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+{% endblock %}
 {% block title %}Chat with {{ receiver.name }}{% endblock %}
 {% block content %}
-<div class="chat-container"
-     style="max-width:600px;margin:20px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:flex;flex-direction:column;height:70vh;">
 
-    <!-- Chat Header with presence -->
-    <div class="chat-header"
-        style="background:#075e54; color:#fff; padding:16px;
-                font-size:1.2em; border-top-left-radius:8px; border-top-right-radius:8px; display:flex; align-items:center; justify-content:space-between;">
+<div class="chat-container">
+    <div class="chat-header">
         <div>
             Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
         </div>
-
         <!-- Presence indicator -->
-        <div id="presence-{{ receiver.id }}" style="display:flex;align-items:center;gap:8px;">
-            <span id="presence-dot-{{ receiver.id }}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#bdc3c7;"></span>
-            <small id="presence-text-{{ receiver.id }}" style="color:#e0f2f1;">Checking...</small>
+        <div id="presence-{{ receiver.id }}" class="presence-indicator">
+            <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
+            <small id="presence-text-{{ receiver.id }}">Checking...</small>
         </div>
     </div>
-    <!-- Chat Messages -->
-    <div class="chat-messages" id="chat-messages"
-        style="flex:1; padding:16px; overflow-y:auto; background:#ece5dd;">
 
+    <!-- Chat Messages -->
+    <div class="chat-messages"
+        id="chat-messages"
+        data-room-name="{{ room_name }}"
+        data-me-id="{{ current_user.id }}"
+        data-receiver-id="{{ receiver.id }}"
+        data-receiver-online="{{ receiver.is_online|yesno:'true,false' }}"
+        data-receiver-last-seen="{% if receiver.last_seen %}{{ receiver.last_seen|date:'c' }}{% endif %}">
         {% if messages %}
             {% regroup messages by timestamp.date as date_groups %}
             {% with today=now|date:"Y-m-d" %}
                 {% for day in date_groups %}
-                    <div class="date-header sticky-date"
-                         style="position: sticky; top: 0; background: #e5e5e5; padding: 5px 10px; text-align: center; font-size: 0.9em; font-weight: bold; z-index: 10; margin: 10px auto; border-radius: 10px; width: fit-content;">
+                    <div class="date-header sticky-date">
                         {{ day.grouper|date:"F j, Y" }}
                     </div>
 
                     {% for msg in day.list %}
                         <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
-                             data-msg-id="{{ msg.id }}"
-                            style="margin-bottom: 12px; max-width: 70%; padding: 10px 16px; border-radius: 18px; clear: both;
-                                {% if msg.sender.id == current_user.id %}
-                                    background: #dcf8c6; margin-left: auto; text-align: right;
-                                {% else %}
-                                    background: #fff; margin-right: auto; text-align: left; border: 1px solid #ddd;
-                                {% endif %}">
+                             data-msg-id="{{ msg.id }}">
                             <div>{{ msg.content|linebreaksbr }}</div>
-                            <small style="color:#888;">
+                            <small>
                                 {{ msg.timestamp|time:"H:i" }}
                                 {% if msg.sender.id == current_user.id %}
-                                    <span class="ticks" style="margin-left:5px;">
+                                    <span class="ticks">
                                     {% if msg.status == 'sent' %}✓
                                     {% elif msg.status == 'delivered' %}✓✓
-                                    {% elif msg.status == 'read' %}<span style="color:#4fc3f7;">✓✓</span>
+                                    {% elif msg.status == 'read' %}<span class="read-ticks">✓✓</span>
                                     {% endif %}
                                     </span>
                                 {% endif %}
@@ -57,207 +54,17 @@
                 {% endfor %}
             {% endwith %}
         {% else %}
-            <div style="text-align:center; color:#888;">No messages yet.</div>
+            <div class="no-messages">No messages yet.</div>
         {% endif %}
     </div>
 
     <!-- Chat Input Form -->
-    <form id="chat-form" method="post" class="chat-input"
-          style="display:flex;padding:16px;background:#f7f7f7;border-bottom-left-radius:8px;border-bottom-right-radius:8px;">
+    <form id="chat-form" method="post" class="chat-input">
         {% csrf_token %}
-        <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required
-                  style="flex:1;resize:none;border-radius:8px;border:1px solid #ccc;padding:8px;font-size:1em;"></textarea>
-        <button id="chat-message-submit" type="submit"
-                style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:8px 20px;margin-left:8px;font-size:1em;cursor:pointer;">
-            Send
-        </button>
+        <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required></textarea>
+        <button id="chat-message-submit" type="submit">Send</button>
     </form>
 
 </div>
-
-<!-- JavaScript -->
-<script>
-    const roomName = "{{ room_name }}";
-    const meId = Number("{{ current_user.id }}");        // logged in user (this browser)
-    const otherUserId = Number("{{ receiver.id }}");    // the chat partner
-
-    const chatSocket = new WebSocket(
-        (window.location.protocol === 'https:' ? 'wss://' : 'ws://')
-        + window.location.host + '/ws/chat/' + roomName + '/'
-    );
-
-    const messagesContainer = document.getElementById('chat-messages');
-
-    // Helper to update ticks for a message element with given msgId
-    function updateTicksForMsg(msgId, newStatus) {
-        if (!msgId) return;
-        const elem = document.querySelector(`[data-msg-id='${msgId}']`);
-        if (!elem) return;
-        const ticksSpan = elem.querySelector('.ticks');
-        if (!ticksSpan) return;
-
-        if (newStatus === 'sent') ticksSpan.innerHTML = '✓';
-        else if (newStatus === 'delivered') ticksSpan.innerHTML = '✓✓';
-        else if (newStatus === 'read') ticksSpan.innerHTML = "<span style='color:#4fc3f7;'>✓✓</span>";
-    }
-
-    // Create DOM for a message (used for incoming messages)
-    function createMessageDiv(msgText, isSender, timestampText, status, msgId) {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', isSender ? 'sent' : 'received');
-        if (msgId) msgDiv.setAttribute('data-msg-id', msgId);
-        msgDiv.style.cssText = `
-            margin-bottom:12px;max-width:70%;padding:10px 16px;border-radius:18px;clear:both;
-            ${isSender ? 'background:#dcf8c6;margin-left:auto;text-align:right;' : 'background:#fff;margin-right:auto;text-align:left;border:1px solid #ddd;'}
-        `;
-        const ticksHtml = isSender ? (status === 'read' ? "<span style='color:#4fc3f7;'>✓✓</span>" : (status === 'delivered' ? '✓✓' : '✓')) : '';
-        msgDiv.innerHTML = `<div>${msgText}</div><small style="color:#888;">${timestampText} <span class="ticks">${ticksHtml}</span></small>`;
-        return msgDiv;
-    }
-
-    // Update presence UI in header for the receiver
-    function updatePresenceUI(userId, isOnline, lastSeen) {
-        // we only show presence of the chat partner in header (otherUserId)
-        if (Number(userId) !== otherUserId) return;
-        const dot = document.getElementById(`presence-dot-${otherUserId}`);
-        const text = document.getElementById(`presence-text-${otherUserId}`);
-        if (!dot || !text) return;
-
-        if (isOnline) {
-            dot.style.background = '#2ecc71'; // green
-            text.textContent = 'Online';
-            return;
-        }
-
-        // Offline state
-        dot.style.background = '#bdc3c7';
-        if (!lastSeen) {
-            text.textContent = 'Offline';
-            return;
-        }
-        
-        const lastSeenDate = new Date(lastSeen);
-        const now = new Date();
-        const diffMs = now - lastSeenDate;
-        const diffMinutes = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMinutes / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        const formattedTime = lastSeenDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-        const formattedDate = lastSeenDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
-
-        if (diffMinutes < 1) {
-            text.textContent = 'Last seen just now';
-        } else if (diffMinutes < 60) {
-            text.textContent = `Last seen ${diffMinutes} min ago`;
-        } else if (diffHours < 24 && now.getDate() === lastSeenDate.getDate()) {
-            text.textContent = `Last seen today ${formattedTime}`;
-        } else if (diffDays === 1) {
-            text.textContent = `Last seen yesterday ${formattedTime}`;
-        } else {
-            text.textContent = `Last seen on ${formattedDate}, ${formattedTime}`;
-        }
-    }
-
-
-    chatSocket.onopen = function () {
-        console.log("WebSocket connected");
-
-        // Inform server this user is connected to the chat -> server may mark messages delivered
-        chatSocket.send(JSON.stringify({
-            'action': 'receiver_connected',
-            'receiver_id': meId
-        }));
-
-        // Immediately mark messages read (optional; we also do this on focus/visibility)
-        chatSocket.send(JSON.stringify({
-            'action': 'mark_read',
-            'reader_id': meId,
-            'other_user_id': otherUserId
-        }));
-    };
-
-    chatSocket.onmessage = function (e) {
-        const data = JSON.parse(e.data);
-        const eventType = data.event;
-
-        if (eventType === 'chat_message') {
-            const message = data.message;
-            const sender_id = Number(data.sender_id);
-            const receiver_id = Number(data.receiver_id);
-            const isSender = sender_id === meId;
-            const status = data.status;
-            const msgId = data.msg_id;
-            const ts = data.timestamp ? new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Just now';
-
-            const msgDiv = createMessageDiv(message, isSender, ts, status, msgId);
-            messagesContainer.appendChild(msgDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-            // If this client is the receiver of this message, ask server to mark delivered
-            if (!isSender && receiver_id === meId) {
-                chatSocket.send(JSON.stringify({
-                    'action': 'receiver_connected',
-                    'receiver_id': meId
-                }));
-            }
-        } else if (eventType === 'status_update') {
-            const ids = data.msg_ids || [];
-            const newStatus = data.new_status;
-            ids.forEach(id => updateTicksForMsg(id, newStatus));
-        } else if (eventType === 'presence_update') {
-            // presence update: contains user_id, is_online, optional last_seen
-            updatePresenceUI(data.user_id, data.is_online, data.last_seen);
-        }
-    };
-
-    chatSocket.onclose = function (e) {
-        console.error('Chat socket closed unexpectedly');
-    };
-
-    // Send message
-    document.getElementById('chat-form').onsubmit = function (e) {
-        e.preventDefault();
-        const inputField = document.getElementById('chat-message-input');
-        const message = inputField.value.trim();
-        if (message === '') return;
-
-        chatSocket.send(JSON.stringify({
-            'action': 'send_message',
-            'message': message,
-            'sender_id': meId,
-            'receiver_id': otherUserId
-        }));
-
-        inputField.value = '';
-    };
-
-    // Mark messages read when window/tab gets focus or becomes visible
-    function markReadNow() {
-        chatSocket.send(JSON.stringify({
-            'action': 'mark_read',
-            'reader_id': meId,
-            'other_user_id': otherUserId
-        }));
-    }
-
-    window.addEventListener('focus', markReadNow);
-    document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') markReadNow();
-    });
-
-    // Optional: scroll to bottom on load
-    window.onload = function () {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        // set initial presence UI from server-rendered data if available
-        {% if receiver.is_online %}
-            updatePresenceUI({{ receiver.id }}, true, null);
-        {% elif receiver.last_seen %}
-            updatePresenceUI({{ receiver.id }}, false, "{{ receiver.last_seen|date:'c' }}");
-        {% else %}
-            updatePresenceUI({{ receiver.id }}, false, null);
-        {% endif %}
-    };
-</script>
+<script src="{% static 'js/chat.js' %}"></script>
 {% endblock %}

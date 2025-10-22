@@ -9,7 +9,11 @@
     height: 70vh;
 }
 
+<<<<<<< HEAD
 /* Header */
+=======
+/* ---------- Header ---------- */
+>>>>>>> test
 .chat-header {
     background: #075e54;
     color: #fff;
@@ -22,7 +26,11 @@
     justify-content: space-between;
 }
 
+<<<<<<< HEAD
 .presence {
+=======
+.presence-indicator {
+>>>>>>> test
     display: flex;
     align-items: center;
     gap: 8px;
@@ -36,11 +44,19 @@
     background: #bdc3c7;
 }
 
+<<<<<<< HEAD
 .presence small {
     color: #e0f2f1;
 }
 
 /* Messages */
+=======
+.presence-indicator small {
+    color: #e0f2f1;
+}
+
+/* ---------- Messages ---------- */
+>>>>>>> test
 .chat-messages {
     flex: 1;
     padding: 16px;
@@ -83,16 +99,25 @@
     border: 1px solid #ddd;
 }
 
+<<<<<<< HEAD
 .msg-time {
     color: #888;
     font-size: 0.8em;
+=======
+.message small {
+    color: #888;
+>>>>>>> test
 }
 
 .ticks {
     margin-left: 5px;
 }
 
+<<<<<<< HEAD
 .ticks .read {
+=======
+.read-ticks {
+>>>>>>> test
     color: #4fc3f7;
 }
 
@@ -100,3 +125,35 @@
     text-align: center;
     color: #888;
 }
+<<<<<<< HEAD
+=======
+
+/* ---------- Input ---------- */
+.chat-input {
+    display: flex;
+    padding: 16px;
+    background: #f7f7f7;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.chat-input textarea {
+    flex: 1;
+    resize: none;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    padding: 8px;
+    font-size: 1em;
+}
+
+.chat-input button {
+    background: #25d366;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    margin-left: 8px;
+    font-size: 1em;
+    cursor: pointer;
+}
+>>>>>>> test

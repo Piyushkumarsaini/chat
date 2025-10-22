@@ -129,7 +129,17 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer"
     }
 }
+<<<<<<< HEAD
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "static", 
 ]
+=======
+
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+STATIC_URL = '/static/'
+>>>>>>> test
