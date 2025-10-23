@@ -1,70 +1,104 @@
 {% extends 'chat_app/base.html' %}
 {% load static %}
+
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/chat.css' %}">
 {% endblock %}
+
 {% block title %}Chat with {{ receiver.name }}{% endblock %}
+
 {% block content %}
 
-<div class="chat-container">
-    <div class="chat-header">
-        <div>
-            Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
+<div class="chat-wrapper">
+    <!-- Left Panel: User List -->
+    <div class="user-list">
+        <div class="user-list-header">
+            <h3>Chats</h3>
         </div>
-        <!-- Presence indicator -->
-        <div id="presence-{{ receiver.id }}" class="presence-indicator">
-            <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
-            <small id="presence-text-{{ receiver.id }}">Checking...</small>
-        </div>
-    </div>
-
-    <!-- Chat Messages -->
-    <div class="chat-messages"
-        id="chat-messages"
-        data-room-name="{{ room_name }}"
-        data-me-id="{{ current_user.id }}"
-        data-receiver-id="{{ receiver.id }}"
-        data-receiver-online="{{ receiver.is_online|yesno:'true,false' }}"
-        data-receiver-last-seen="{% if receiver.last_seen %}{{ receiver.last_seen|date:'c' }}{% endif %}">
-        {% if messages %}
-            {% regroup messages by timestamp.date as date_groups %}
-            {% with today=now|date:"Y-m-d" %}
-                {% for day in date_groups %}
-                    <div class="date-header sticky-date">
-                        {{ day.grouper|date:"F j, Y" }}
+        <div class="user-list-body">
+            {% for user in users %}
+                <div class="user-item" data-user-id="{{ user.id }}" onclick="openChat({{ user.id }})">
+                    <div class="user-avatar">
+                        <img src="{% static 'images/default-avatar.png' %}" alt="Avatar">
                     </div>
-
-                    {% for msg in day.list %}
-                        <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
-                             data-msg-id="{{ msg.id }}">
-                            <div>{{ msg.content|linebreaksbr }}</div>
-                            <small>
-                                {{ msg.timestamp|time:"H:i" }}
-                                {% if msg.sender.id == current_user.id %}
-                                    <span class="ticks">
-                                    {% if msg.status == 'sent' %}✓
-                                    {% elif msg.status == 'delivered' %}✓✓
-                                    {% elif msg.status == 'read' %}<span class="read-ticks">✓✓</span>
-                                    {% endif %}
-                                    </span>
-                                {% endif %}
-                            </small>
-                        </div>
-                    {% endfor %}
-                {% endfor %}
-            {% endwith %}
-        {% else %}
-            <div class="no-messages">No messages yet.</div>
-        {% endif %}
+                    <div class="user-info">
+                        <span class="user-name">{{ user.name }}</span>
+                        <small class="last-message">
+                            {% if user.last_message %}
+                                {{ user.last_message|truncatechars:30 }}
+                            {% else %}
+                                No messages yet
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
     </div>
 
-    <!-- Chat Input Form -->
-    <form id="chat-form" method="post" class="chat-input">
-        {% csrf_token %}
-        <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required></textarea>
-        <button id="chat-message-submit" type="submit">Send</button>
-    </form>
+    <!-- Right Panel: Chat Area -->
+    <div class="chat-container">
+        <div class="chat-header">
+            <div>
+                Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
+            </div>
+            <div id="presence-{{ receiver.id }}" class="presence-indicator">
+                <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
+                <small id="presence-text-{{ receiver.id }}">Checking...</small>
+            </div>
+        </div>
 
+        <div class="chat-messages"
+            id="chat-messages"
+            data-room-name="{{ room_name }}"
+            data-me-id="{{ current_user.id }}"
+            data-receiver-id="{{ receiver.id }}"
+            data-receiver-online="{{ receiver.is_online|yesno:'true,false' }}"
+            data-receiver-last-seen="{% if receiver.last_seen %}{{ receiver.last_seen|date:'c' }}{% endif %}">
+
+            {% if messages %}
+                {% regroup messages by timestamp.date as date_groups %}
+                {% with today=now|date:"Y-m-d" %}
+                    {% for day in date_groups %}
+                        <div class="date-header sticky-date">
+                            {{ day.grouper|date:"F j, Y" }}
+                        </div>
+                        {% for msg in day.list %}
+                            <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
+                                 data-msg-id="{{ msg.id }}">
+                                <div>{{ msg.content|linebreaksbr }}</div>
+                                <small>
+                                    {{ msg.timestamp|time:"H:i" }}
+                                    {% if msg.sender.id == current_user.id %}
+                                        <span class="ticks">
+                                        {% if msg.status == 'sent' %}✓
+                                        {% elif msg.status == 'delivered' %}✓✓
+                                        {% elif msg.status == 'read' %}<span class="read-ticks">✓✓</span>
+                                        {% endif %}
+                                        </span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                {% endwith %}
+            {% else %}
+                <div class="no-messages">No messages yet.</div>
+            {% endif %}
+        </div>
+
+        <form id="chat-form" method="post" class="chat-input">
+            {% csrf_token %}
+            <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required></textarea>
+            <button id="chat-message-submit" type="submit">Send</button>
+        </form>
+    </div>
 </div>
+
 <script src="{% static 'js/chat.js' %}"></script>
+<script>
+function openChat(userId) {
+    window.location.href = `/chat/${userId}/`;  // adjust this URL as needed
+}
+</script>
 {% endblock %}
