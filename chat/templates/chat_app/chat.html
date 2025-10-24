@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Clone</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/chat.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
@@ -101,8 +103,14 @@
             <div class="chat-header">
                 <div class="chat-profile-info">
                     <div class="chat-avatar-large"></div>
-                    <span class="chat-contact-name">Madhuri Saini 1</span>
+                    <span class="chat-contact-name">{{ receiver.name }}</span>
+
+                    <div id="presence-{{ receiver.id }}" class="presence-indicator" style="margin-left: 10px;">
+                        <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
+                        <small id="presence-text-{{ receiver.id }}">Checking...</small>
+                    </div>
                 </div>
+
                 <div class="chat-header-icons">
                     <i class="fas fa-video"></i>
                     <i class="fas fa-phone-alt"></i>
@@ -110,27 +118,59 @@
                     <i class="fas fa-ellipsis-v"></i>
                 </div>
             </div>
-            <div class="message-area">
-                <div class="message-divider">05-10-2025</div>
-                <div class="encryption-message">
-                    <i class="fas fa-lock"></i>
-                    Messages and calls are end-to-end encrypted. Only people in this chat can read, listen to, or share them. Select to learn more.
-                </div>
-                <div class="message-bubble sent">
-                    <p>Hi</p>
-                    <span class="message-time">21:05 <i class="fas fa-check-double"></i></span>
-                </div>
-                <div class="message-bubble received">
-                    <p>Hi</p>
-                    <span class="message-time">21:05</span>
-                </div>
+            <div class="message-area"
+                id="chat-messages"
+                data-room-name="{{ room_name }}"
+                data-me-id="{{ current_user.id }}"
+                data-receiver-id="{{ receiver.id }}"
+                data-receiver-online="{{ receiver.is_online|yesno:'true,false' }}"
+                data-receiver-last-seen="{% if receiver.last_seen %}{{ receiver.last_seen|date:'c' }}{% endif %}">
+                
+                {% if messages %}
+                    {% regroup messages by timestamp.date as date_groups %}
+                    {% with today=now|date:"Y-m-d" %}
+                        {% for day in date_groups %}
+                            <div class="message-divider">{{ day.grouper|date:"F j, Y" }}</div>
+                            <div class="encryption-message">
+                                <i class="fas fa-lock"></i>
+                                Messages and calls are end-to-end encrypted. Only people in this chat can read, listen to, or share them. Select to learn more.
+                            </div>
+
+                            {% for msg in day.list %}
+                                <div class="message-bubble {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
+                                    data-msg-id="{{ msg.id }}">
+                                    <p>{{ msg.content|linebreaksbr }}</p>
+                                    <span class="message-time">
+                                        {{ msg.timestamp|time:"H:i" }}
+                                        {% if msg.sender.id == current_user.id %}
+                                            <span class="ticks">
+                                            {% if msg.status == 'sent' %}
+                                                <i class="fas fa-check"></i>
+                                            {% elif msg.status == 'delivered' %}
+                                                <i class="fas fa-check-double grey-tick"></i>
+                                            {% elif msg.status == 'read' %}
+                                                <i class="fas fa-check-double read-ticks"></i>
+                                            {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        {% endfor %}
+                    {% endwith %}
+                {% else %}
+                    <div class="no-messages">No messages yet.</div>
+                {% endif %}
             </div>
-            <div class="chat-input-area">
+            <form id="chat-form" method="post" class="chat-input-area">
+                {% csrf_token %}
                 <i class="fas fa-smile"></i>
                 <i class="fas fa-paperclip"></i>
-                <input type="text" placeholder="Type a message">
-                <i class="fas fa-microphone"></i>
-            </div>
+                
+                <textarea id="chat-message-input" name="content" rows="1" placeholder="Type a message" required></textarea>
+                <button id="chat-message-submit" type="submit" style="display:none;"></button> 
+                <i class="fas fa-microphone" id="mic-icon"></i>
+            </form>
         </div>
     </div>
 
