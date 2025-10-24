@@ -1,70 +1,146 @@
-{% extends 'chat_app/base.html' %}
-{% load static %}
-{% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/chat.css' %}">
-{% endblock %}
-{% block title %}Chat with {{ receiver.name }}{% endblock %}
-{% block content %}
-
-<div class="chat-container">
-    <div class="chat-header">
-        <div>
-            Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
-        </div>
-        <!-- Presence indicator -->
-        <div id="presence-{{ receiver.id }}" class="presence-indicator">
-            <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
-            <small id="presence-text-{{ receiver.id }}">Checking...</small>
-        </div>
-    </div>
-
-    <!-- Chat Messages -->
-    <div class="chat-messages"
-        id="chat-messages"
-        data-room-name="{{ room_name }}"
-        data-me-id="{{ current_user.id }}"
-        data-receiver-id="{{ receiver.id }}"
-        data-receiver-online="{{ receiver.is_online|yesno:'true,false' }}"
-        data-receiver-last-seen="{% if receiver.last_seen %}{{ receiver.last_seen|date:'c' }}{% endif %}">
-        {% if messages %}
-            {% regroup messages by timestamp.date as date_groups %}
-            {% with today=now|date:"Y-m-d" %}
-                {% for day in date_groups %}
-                    <div class="date-header sticky-date">
-                        {{ day.grouper|date:"F j, Y" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Clone</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="whatsapp-desktop-container">
+        <div class="whatsapp-sidebar-container">
+            <div class="left-nav-bar">
+                <div class="nav-avatar">
+                    <img src="https://via.placeholder.com/38" alt="Profile" class="round-avatar">
+                    <span class="notification-badge">12</span>
+                </div>
+                <div class="nav-icons">
+                    <i class="fas fa-circle nav-status-indicator"></i>
+                    <i class="fas fa-comment-dots"></i>
+                    <i class="fas fa-users"></i>
+                    <i class="fas fa-circle nav-status-indicator"></i>
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="nav-bottom-avatar">
+                    <img src="https://via.placeholder.com/38" alt="Profile" class="round-avatar">
+                </div>
+            </div>
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h1 class="whatsapp-title">WhatsApp</h1>
+                    <div class="header-icons">
+                        <i class="fas fa-plus action-icon" title="New Chat"></i>
+                        <i class="fas fa-ellipsis-v action-icon" title="Menu"></i>
                     </div>
-
-                    {% for msg in day.list %}
-                        <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
-                             data-msg-id="{{ msg.id }}">
-                            <div>{{ msg.content|linebreaksbr }}</div>
-                            <small>
-                                {{ msg.timestamp|time:"H:i" }}
-                                {% if msg.sender.id == current_user.id %}
-                                    <span class="ticks">
-                                    {% if msg.status == 'sent' %}✓
-                                    {% elif msg.status == 'delivered' %}✓✓
-                                    {% elif msg.status == 'read' %}<span class="read-ticks">✓✓</span>
-                                    {% endif %}
-                                    </span>
-                                {% endif %}
-                            </small>
+                </div>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search or start a new chat">
+                </div>
+                <div class="filter-tabs">
+                    <button class="tab active" data-filter="all">All</button>
+                    <button class="tab" data-filter="unread">Unread</button>
+                    <button class="tab" data-filter="favorites">Favorites</button>
+                    <button class="tab" data-filter="groups">Groups</button>
+                </div>
+                <div class="sync-banner">
+                    <i class="fas fa-sync-alt"></i>
+                    <div class="sync-text">
+                        <p><strong>Turn on background sync</strong></p>
+                        <p>Get faster performance by syncing messages in the background</p>
+                    </div>
+                    <i class="fas fa-times close-banner-icon"></i>
+                </div>
+                <div class="chat-list">
+                    <div class="chat-item">
+                        <img src="https://via.placeholder.com/50" alt="Avatar" class="chat-avatar">
+                        <div class="chat-info">
+                            <span class="chat-name">Sandeep Bhaiya</span>
+                            <span class="chat-time">13:54</span>
+                            <p class="last-message"><i class="fas fa-check-double grey-tick"></i> Chats - Brave 2025-10-22 13-43-31...</p>
                         </div>
-                    {% endfor %}
-                {% endfor %}
-            {% endwith %}
-        {% else %}
-            <div class="no-messages">No messages yet.</div>
-        {% endif %}
+                    </div>
+                    <div class="chat-item active">
+                        <img src="https://via.placeholder.com/50" alt="Avatar" class="chat-avatar">
+                        <div class="chat-info">
+                            <span class="chat-name">Oooooooooooo (You)</span>
+                            <span class="chat-time">13:53</span>
+                            <p class="last-message"><i class="fas fa-check-double blue-tick"></i> Chats - Brave 2025-10-22 13-43-31...</p>
+                        </div>
+                    </div>
+                    <div class="chat-item">
+                        <img src="https://via.placeholder.com/50" alt="Avatar" class="chat-avatar">
+                        <div class="chat-info">
+                            <span class="chat-name">Jatin Suraj Pol</span>
+                            <span class="chat-time">13:24</span>
+                            <p class="last-message"><i class="fas fa-image"></i> Photo</p>
+                        </div>
+                    </div>
+                    <div class="chat-item">
+                        <img src="https://via.placeholder.com/50/ed1c24/ffffff?text=Jio" alt="JioHome" class="chat-avatar" style="border-radius: 10px;">
+                        <div class="chat-info">
+                            <span class="chat-name">JioHome</span>
+                            <span class="chat-time">13:13</span>
+                            <p class="last-message">Dear Customer, How has your JioH...</p>
+                            <span class="unread-count">1</span>
+                        </div>
+                    </div>
+                    <div class="chat-item">
+                        <img src="https://via.placeholder.com/50/25d366/ffffff?text=W" alt="WhatsApp" class="chat-avatar" style="border-radius: 50%;">
+                        <div class="chat-info">
+                            <span class="chat-name">WhatsApp</span>
+                            <span class="chat-time">Yesterday</span>
+                            <p class="last-message"><i class="fas fa-lightbulb"></i> Get answers from Meta AI <i class="fas fa-star yellow-star"></i></p>
+                            <span class="unread-count">1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="chat-main-content">
+            <div class="chat-header">
+                <div class="chat-profile-info">
+                    <div class="chat-avatar-large"></div>
+                    <span class="chat-contact-name">Madhuri Saini 1</span>
+                </div>
+                <div class="chat-header-icons">
+                    <i class="fas fa-video"></i>
+                    <i class="fas fa-phone-alt"></i>
+                    <i class="fas fa-search"></i>
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+            <div class="message-area">
+                <div class="message-divider">05-10-2025</div>
+                <div class="encryption-message">
+                    <i class="fas fa-lock"></i>
+                    Messages and calls are end-to-end encrypted. Only people in this chat can read, listen to, or share them. Select to learn more.
+                </div>
+                <div class="message-bubble sent">
+                    <p>Hi</p>
+                    <span class="message-time">21:05 <i class="fas fa-check-double"></i></span>
+                </div>
+                <div class="message-bubble received">
+                    <p>Hi</p>
+                    <span class="message-time">21:05</span>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <i class="fas fa-smile"></i>
+                <i class="fas fa-paperclip"></i>
+                <input type="text" placeholder="Type a message">
+                <i class="fas fa-microphone"></i>
+            </div>
+        </div>
     </div>
 
-    <!-- Chat Input Form -->
-    <form id="chat-form" method="post" class="chat-input">
-        {% csrf_token %}
-        <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required></textarea>
-        <button id="chat-message-submit" type="submit">Send</button>
-    </form>
-
-</div>
-<script src="{% static 'js/chat.js' %}"></script>
-{% endblock %}
+    <script>
+        document.querySelectorAll('.action-icon, .nav-icons i, .search-bar i, .filter-tabs button, .sync-banner .close-banner-icon, .chat-item, .chat-header-icons i, .chat-input-area i').forEach(item => {
+            item.addEventListener('click', () => {
+                console.log('Icon clicked:', item.className || item.textContent);
+                // Add your custom actions here
+            });
+        });
+    </script>
+</body>
+</html>
