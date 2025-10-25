@@ -103,7 +103,13 @@
             <div class="chat-header">
                 <div class="chat-profile-info">
                     <div class="chat-avatar-large"></div>
-                    <span class="chat-contact-name">{{ receiver.name }}</span>
+                    <span class="chat-contact-name">
+                        {% if receiver.name %}
+                            {{ receiver.name }}
+                        {% else %}
+                            {{ receiver.number }}
+                        {% endif %}
+                    </span>
 
                     <div id="presence-{{ receiver.id }}" class="presence-indicator" style="margin-left: 10px;">
                         <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
@@ -167,12 +173,16 @@
                 <i class="fas fa-smile"></i>
                 <i class="fas fa-paperclip"></i>
                 
-                <textarea id="chat-message-input" name="content" rows="1" placeholder="Type a message" required></textarea>
-                <button id="chat-message-submit" type="submit" style="display:none;"></button> 
+                <input type="text" id="chat-message-input" name="content" placeholder="Type a message" required>
                 <i class="fas fa-microphone" id="mic-icon"></i>
+                <button id="chat-message-submit" type="submit" class="send-btn" style="display:none;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
             </form>
         </div>
     </div>
+
+    <script src="{% static 'js/chat.js' %}"></script>
 
     <script>
         document.querySelectorAll('.action-icon, .nav-icons i, .search-bar i, .filter-tabs button, .sync-banner .close-banner-icon, .chat-item, .chat-header-icons i, .chat-input-area i').forEach(item => {

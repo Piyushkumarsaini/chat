@@ -510,21 +510,28 @@ body {
     box-shadow: 0 1px 1px rgba(0,0,0,0.05);
 }
 
-.chat-input-area {
-    display: flex;
-    align-items: center;
-    padding: 10px 15px;
-    background-color: var(--whatsapp-grey-bg-light);
-    border-top: 1px solid var(--whatsapp-border-color);
-}
-
-.chat-input-area i {
-    font-size: 1.4rem;
-    color: var(--whatsapp-medium-grey-text);
-    margin: 0 10px;
+/* ADD these CSS rules */
+.chat-input-area .send-btn {
+    background: none;
+    border: none;
+    padding: 0; /* Remove padding */
+    margin: 0 10px; /* Align with other icons */
     cursor: pointer;
+    font-size: 1.4rem;
+    color: var(--whatsapp-medium-grey-text); /* Use the same color as the icons */
+    display: flex; /* Helps align the icon inside */
+    align-items: center;
+    justify-content: center;
 }
 
+.chat-input-area .send-btn i {
+    /* Ensure the icon inside the button is styled like other icons */
+    font-size: 1.4rem;
+    color: var(--whatsapp-medium-grey-text); 
+    margin: 0; /* Remove extra margin inside the button */
+}
+
+/* B. Tweak the input selector to ensure it takes space correctly */
 .chat-input-area input {
     flex-grow: 1;
     border: none;
@@ -533,12 +540,5 @@ body {
     background-color: white;
     font-size: 1rem;
     color: var(--whatsapp-dark-grey-text);
-}
-
-.chat-input-area input::placeholder {
-    color: var(--whatsapp-medium-grey-text);
-}
-
-.chat-input-area input:focus {
-    outline: none;
+    /* Make sure this is still flex-grow: 1; */
 }
