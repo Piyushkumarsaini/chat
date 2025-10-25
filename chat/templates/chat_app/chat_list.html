@@ -1,110 +1,96 @@
-{% extends 'chat_app/base.html' %} 
-{% load static %}
-
-{% block extra_head %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/chat.css' %}">
-{% endblock extra_head %}
-
-{% block title %}WhatsApp - {{ current_user.name|default:"Chats" }}{% endblock title %}
-
-{% block content %}
-<div class="whatsapp-desktop-container">
-    <div class="whatsapp-sidebar-container">
-        
-        <div class="left-nav-bar">
-            <div class="nav-avatar">
-                <img src="https://via.placeholder.com/38" alt="Profile" class="round-avatar">
-                <span class="notification-badge">12</span>
-            </div>
-            <div class="nav-icons">
-                <i class="fas fa-circle nav-status-indicator"></i>
-                <i class="fas fa-comment-dots"></i>
-                <i class="fas fa-users"></i>
-                <i class="fas fa-circle nav-status-indicator"></i>
-                <i class="fas fa-cog"></i>
-            </div>
-            <div class="nav-bottom-avatar">
-                <img src="https://via.placeholder.com/38" alt="Profile" class="round-avatar">
-            </div>
-        </div>
-        
-        <div class="sidebar-content">
-            <div class="sidebar-header">
-                <h1 class="whatsapp-title">WhatsApp</h1>
-                <div class="header-icons">
-                    <i class="fas fa-plus action-icon" title="New Chat"></i>
-                    <i class="fas fa-ellipsis-v action-icon" title="Menu"></i>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In Chat</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/chat.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="whatsapp-desktop-container">
+        <div class="whatsapp-sidebar-container">
+            <div class="left-nav-bar">
+                <div class="nav-avatar">
+                    <img src="https://via.placeholder.com/38" alt="Profile" class="round-avatar">
+                    <span class="notification-badge">12</span>
+                </div>
+                <div class="nav-icons">
+                    <i class="fas fa-circle nav-status-indicator"></i>
+                    <i class="fas fa-comment-dots"></i>
+                    <i class="fas fa-users"></i>
+                    <i class="fas fa-circle nav-status-indicator"></i>
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="nav-bottom-avatar">
+                    <img src="https://via.placeholder.com/38" alt="Profile" class="round-avatar">
                 </div>
             </div>
-            <div class="search-bar">
-                <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search or start a new chat">
-            </div>
-            <div class="filter-tabs">
-                <button class="tab active" data-filter="all">All</button>
-                <button class="tab" data-filter="unread">Unread</button>
-                <button class="tab" data-filter="favorites">Favorites</button>
-                <button class="tab" data-filter="groups">Groups</button>
-            </div>
-            <div class="sync-banner">
-                <i class="fas fa-sync-alt"></i>
-                <div class="sync-text">
-                    <p><strong>Turn on background sync</strong></p>
-                    <p>Get faster performance by syncing messages in the background</p>
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h1 class="whatsapp-title">WhatsApp</h1>
+                    <div class="header-icons">
+                        <i class="fas fa-plus action-icon" title="New Chat"></i>
+                        <i class="fas fa-ellipsis-v action-icon" title="Menu"></i>
+                    </div>
                 </div>
-                <i class="fas fa-times close-banner-icon"></i>
-            </div>
-            
-            <div class="chat-list" id="chatList">
-                {% for chat in chat_list_data %}
-                    <a href="{% url 'chat' chat.user.number %}" 
-                       class="chat-item" 
-                       data-name="{{ chat.user.name|default:chat.user.number }}" 
-                       data-type="{{ chat.data_type }}"
-                    >
-                        <div class="avatar">{{ chat.initials }}</div>
-                        
-                        <div class="chat-info">
-                            <span class="chat-name">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search or start a new chat">
+                </div>
+                <div class="filter-tabs">
+                    <button class="tab active" data-filter="all">All</button>
+                    <button class="tab" data-filter="unread">Unread</button>
+                    <button class="tab" data-filter="favorites">Favorites</button>
+                    <button class="tab" data-filter="groups">Groups</button>
+                </div>
+                <div class="sync-banner">
+                    <i class="fas fa-sync-alt"></i>
+                    <div class="sync-text">
+                        <p><strong>Turn on background sync</strong></p>
+                        <p>Get faster performance by syncing messages in the background</p>
+                    </div>
+                    <i class="fas fa-times close-banner-icon"></i>
+                </div>
+                <div class="chat-list" id="chatList">
+                    {% for chat in chat_list_data %}
+                        <a href="{% url 'chat' chat.user.number %}" 
+                            class="chat-item"
+                            data-name="{{ chat.user.name|default:chat.user.number }}"
+                            data-type="{{ chat.data_type }}">
+                            
+                            <div class="avatar">{{ chat.initials }}</div>
+
+                            <div class="chat-info">
+                                <span class="chat-name">
                                 {% if chat.user.name %}
                                     {{ chat.user.name }}
                                 {% else %}
                                     {{ chat.user.number }}
                                 {% endif %}
-                            </span>
-                            
-                            <span class="chat-time">{{ chat.time_display }}</span>
-                            
-                            <p class="last-message">
+                                </span>
+
+                                <span class="chat-time">{{ chat.time_display }}</span>
+
+                                <p class="last-message">
                                 {% if chat.last_message_sender_id == current_user.id %}
-                                    {% comment %} 
-                                        In a real app, you'd check a 'read' status field on the Message object here
-                                    {% endcomment %}
                                     <i class="fas fa-check-double grey-tick"></i>
                                 {% endif %}
                                 {{ chat.preview_text|truncatechars:35 }}
-                            </p>
-                        </div>
-                        
-                        {% if chat.unread_count > 0 %}
-                            <span class="unread-count">{{ chat.unread_count }}</span>
-                        {% endif %}
-                    </a>
-                {% empty %}
-                    <div class="chat-item">No active chats found.</div>
-                {% endfor %}
+                                </p>
+                            </div>
+
+                            {% if chat.unread_count > 0 %}
+                                <span class="unread-count">{{ chat.unread_count }}</span>
+                            {% endif %}
+                        </a>
+                    {% empty %}
+                        <div class="chat-item">No active chats found.</div>
+                    {% endfor %}
+                </div>
             </div>
-            </div>
-    </div>
-    
-    <div class="whatsapp-chat-main">
-        <div class="welcome-screen">
-            <i class="fas fa-paper-plane welcome-icon"></i>
-            <h2>Keep your phone connected</h2>
-            <p>WhatsApp connects to your phone to sync messages. To reduce mobile data usage, connect your phone to Wi-Fi.</p>
         </div>
     </div>
-    
-</div>
-{% endblock content %}
+</body>
+</html>

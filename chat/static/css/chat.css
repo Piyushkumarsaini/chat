@@ -403,15 +403,40 @@ body {
 .chat-avatar-large {
     width: 40px;
     height: 40px;
-    background-color: #ddd;
+    background-color: #ccc;
     border-radius: 50%;
-    margin-right: 15px;
+    margin-right: 10px;
+}
+
+.chat-name-status {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
 }
 
 .chat-contact-name {
     font-weight: 600;
-    color: var(--whatsapp-dark-grey-text);
-    font-size: 1.1rem;
+    font-size: 16px;
+    color: #111;
+}
+
+.presence-indicator {
+    display: flex;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.presence-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #4CAF50; /* green for online */
+    margin-right: 5px;
+}
+
+.presence-indicator small {
+    font-size: 12px;
+    color: #666;
 }
 
 .chat-header-icons i {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Clone</title>
+    <title>In Chat</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/chat.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -29,7 +29,7 @@
             </div>
             <div class="sidebar-content">
                 <div class="sidebar-header">
-                    <h1 class="whatsapp-title">WhatsApp</h1>
+                    <h1 class="whatsapp-title">In Chat</h1>
                     <div class="header-icons">
                         <i class="fas fa-plus action-icon" title="New Chat"></i>
                         <i class="fas fa-ellipsis-v action-icon" title="Menu"></i>
@@ -53,67 +53,61 @@
                     </div>
                     <i class="fas fa-times close-banner-icon"></i>
                 </div>
-                <div class="chat-list">
-                    <div class="chat-item">
-                        <img src="https://via.placeholder.com/50" alt="Avatar" class="chat-avatar">
-                        <div class="chat-info">
-                            <span class="chat-name">Sandeep Bhaiya</span>
-                            <span class="chat-time">13:54</span>
-                            <p class="last-message"><i class="fas fa-check-double grey-tick"></i> Chats - Brave 2025-10-22 13-43-31...</p>
-                        </div>
-                    </div>
-                    <div class="chat-item active">
-                        <img src="https://via.placeholder.com/50" alt="Avatar" class="chat-avatar">
-                        <div class="chat-info">
-                            <span class="chat-name">Oooooooooooo (You)</span>
-                            <span class="chat-time">13:53</span>
-                            <p class="last-message"><i class="fas fa-check-double blue-tick"></i> Chats - Brave 2025-10-22 13-43-31...</p>
-                        </div>
-                    </div>
-                    <div class="chat-item">
-                        <img src="https://via.placeholder.com/50" alt="Avatar" class="chat-avatar">
-                        <div class="chat-info">
-                            <span class="chat-name">Jatin Suraj Pol</span>
-                            <span class="chat-time">13:24</span>
-                            <p class="last-message"><i class="fas fa-image"></i> Photo</p>
-                        </div>
-                    </div>
-                    <div class="chat-item">
-                        <img src="https://via.placeholder.com/50/ed1c24/ffffff?text=Jio" alt="JioHome" class="chat-avatar" style="border-radius: 10px;">
-                        <div class="chat-info">
-                            <span class="chat-name">JioHome</span>
-                            <span class="chat-time">13:13</span>
-                            <p class="last-message">Dear Customer, How has your JioH...</p>
-                            <span class="unread-count">1</span>
-                        </div>
-                    </div>
-                    <div class="chat-item">
-                        <img src="https://via.placeholder.com/50/25d366/ffffff?text=W" alt="WhatsApp" class="chat-avatar" style="border-radius: 50%;">
-                        <div class="chat-info">
-                            <span class="chat-name">WhatsApp</span>
-                            <span class="chat-time">Yesterday</span>
-                            <p class="last-message"><i class="fas fa-lightbulb"></i> Get answers from Meta AI <i class="fas fa-star yellow-star"></i></p>
-                            <span class="unread-count">1</span>
-                        </div>
-                    </div>
+                <div class="chat-list" id="chatList">
+                    {% for chat in chat_list_data %}
+                        <a href="{% url 'chat' chat.user.number %}" 
+                            class="chat-item"
+                            data-name="{{ chat.user.name|default:chat.user.number }}"
+                            data-type="{{ chat.data_type }}">
+                            
+                            <div class="avatar">{{ chat.initials }}</div>
+
+                            <div class="chat-info">
+                                <span class="chat-name">
+                                {% if chat.user.name %}
+                                    {{ chat.user.name }}
+                                {% else %}
+                                    {{ chat.user.number }}
+                                {% endif %}
+                                </span>
+
+                                <span class="chat-time">{{ chat.time_display }}</span>
+
+                                <p class="last-message">
+                                {% if chat.last_message_sender_id == current_user.id %}
+                                    <i class="fas fa-check-double grey-tick"></i>
+                                {% endif %}
+                                {{ chat.preview_text|truncatechars:35 }}
+                                </p>
+                            </div>
+
+                            {% if chat.unread_count > 0 %}
+                                <span class="unread-count">{{ chat.unread_count }}</span>
+                            {% endif %}
+                        </a>
+                    {% empty %}
+                        <div class="chat-item">No active chats found.</div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
         <div class="chat-main-content">
             <div class="chat-header">
                 <div class="chat-profile-info">
-                    <div class="chat-avatar-large"></div>
-                    <span class="chat-contact-name">
-                        {% if receiver.name %}
-                            {{ receiver.name }}
-                        {% else %}
-                            {{ receiver.number }}
-                        {% endif %}
-                    </span>
+                <div class="chat-avatar-large"></div>
+                    <div class="chat-name-status">
+                        <span class="chat-contact-name">
+                            {% if receiver.name %}
+                                {{ receiver.name }}
+                            {% else %}
+                                {{ receiver.number }}
+                            {% endif %}
+                        </span>
 
-                    <div id="presence-{{ receiver.id }}" class="presence-indicator" style="margin-left: 10px;">
-                        <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
-                        <small id="presence-text-{{ receiver.id }}">Checking...</small>
+                        <div id="presence-{{ receiver.id }}" class="presence-indicator">
+                            <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
+                            <small id="presence-text-{{ receiver.id }}">Checking...</small>
+                        </div>
                     </div>
                 </div>
 

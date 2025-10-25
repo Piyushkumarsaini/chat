@@ -1,13 +1,18 @@
 // ======================= chat.js =======================
 
+// Grab chat-related elements
 const messagesContainer = document.getElementById('chat-messages');
 const roomName = messagesContainer.dataset.roomName;
-const meId = Number(messagesContainer.dataset.meId);        // logged in user
-const otherUserId = Number(messagesContainer.dataset.receiverId);  // chat partner
+const meId = Number(messagesContainer.dataset.meId);              // Logged-in user
+const otherUserId = Number(messagesContainer.dataset.receiverId); // Chat partner
 
+// Create WebSocket connection
 const chatSocket = new WebSocket(
-    (window.location.protocol === 'https:' ? 'wss://' : 'ws://')
-    + window.location.host + '/ws/chat/' + roomName + '/'
+    (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
+    window.location.host +
+    '/ws/chat/' +
+    roomName +
+    '/'
 );
 
 // ------------------ Helper Functions ------------------
@@ -22,21 +27,38 @@ function updateTicksForMsg(msgId, newStatus) {
 
     if (newStatus === 'sent') ticksSpan.innerHTML = '✓';
     else if (newStatus === 'delivered') ticksSpan.innerHTML = '✓✓';
-    else if (newStatus === 'read') ticksSpan.innerHTML = "<span class='read-ticks'>✓✓</span>";
+    else if (newStatus === 'read')
+        ticksSpan.innerHTML = "<span class='read-ticks'>✓✓</span>";
 }
 
-// Create message div element (incoming or outgoing)
+// ✅ Create message div element (incoming or outgoing)
 function createMessageDiv(msgText, isSender, timestampText, status, msgId) {
     const msgDiv = document.createElement('div');
-    msgDiv.classList.add('message', isSender ? 'sent' : 'received');
+    // FIXED: Use 'message-bubble' instead of 'message'
+    msgDiv.classList.add('message-bubble', isSender ? 'sent' : 'received');
     if (msgId) msgDiv.setAttribute('data-msg-id', msgId);
 
-    const ticksHtml = isSender ? 
-        (status === 'read' ? "<span class='read-ticks'>✓✓</span>" : (status === 'delivered' ? '✓✓' : '✓')) 
+    const ticksHtml = isSender
+        ? status === 'read'
+            ? "<i class='fas fa-check-double read-ticks'></i>"
+            : status === 'delivered'
+            ? "<i class='fas fa-check-double grey-tick'></i>"
+            : "<i class='fas fa-check'></i>"
         : '';
 
-    msgDiv.innerHTML = `<div>${msgText}</div>
-                        <small>${timestampText} <span class="ticks">${ticksHtml}</span></small>`;
+    msgDiv.innerHTML = `
+        <p>${msgText}</p>
+        <span class="message-time">
+            ${timestampText}
+            <span class="ticks">${isSender ? ticksHtml : ''}</span>
+        </span>
+    `;
+
+    // Optional: add a small fade-in animation
+    msgDiv.style.opacity = 0;
+    msgDiv.style.transition = "opacity 0.2s ease-in-out";
+    requestAnimationFrame(() => (msgDiv.style.opacity = 1));
+
     return msgDiv;
 }
 
@@ -67,35 +89,48 @@ function updatePresenceUI(userId, isOnline, lastSeen) {
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    const formattedTime = lastSeenDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-    const formattedDate = lastSeenDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const formattedTime = lastSeenDate.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    });
+    const formattedDate = lastSeenDate.toLocaleDateString([], {
+        month: 'short',
+        day: 'numeric',
+    });
 
     if (diffMinutes < 1) text.textContent = 'Last seen just now';
     else if (diffMinutes < 60) text.textContent = `Last seen ${diffMinutes} min ago`;
-    else if (diffHours < 24 && now.getDate() === lastSeenDate.getDate()) text.textContent = `Last seen today ${formattedTime}`;
-    else if (diffDays === 1) text.textContent = `Last seen yesterday ${formattedTime}`;
+    else if (diffHours < 24 && now.getDate() === lastSeenDate.getDate())
+        text.textContent = `Last seen today ${formattedTime}`;
+    else if (diffDays === 1)
+        text.textContent = `Last seen yesterday ${formattedTime}`;
     else text.textContent = `Last seen on ${formattedDate}, ${formattedTime}`;
 }
 
 // Mark messages as read
 function markReadNow() {
-    chatSocket.send(JSON.stringify({
-        'action': 'mark_read',
-        'reader_id': meId,
-        'other_user_id': otherUserId
-    }));
+    chatSocket.send(
+        JSON.stringify({
+            action: 'mark_read',
+            reader_id: meId,
+            other_user_id: otherUserId,
+        })
+    );
 }
 
 // ------------------ WebSocket Handlers ------------------
 
 chatSocket.onopen = function () {
-    console.log("WebSocket connected");
+    console.log('WebSocket connected');
 
     // Inform server this user is connected
-    chatSocket.send(JSON.stringify({
-        'action': 'receiver_connected',
-        'receiver_id': meId
-    }));
+    chatSocket.send(
+        JSON.stringify({
+            action: 'receiver_connected',
+            receiver_id: meId,
+        })
+    );
 
     // Mark messages read
     markReadNow();
@@ -112,7 +147,12 @@ chatSocket.onmessage = function (e) {
         const isSender = sender_id === meId;
         const status = data.status;
         const msgId = data.msg_id;
-        const ts = data.timestamp ? new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
+        const ts = data.timestamp
+            ? new Date(data.timestamp).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+              })
+            : 'Just now';
 
         const msgDiv = createMessageDiv(message, isSender, ts, status, msgId);
         messagesContainer.appendChild(msgDiv);
@@ -120,17 +160,17 @@ chatSocket.onmessage = function (e) {
 
         // If this client is the receiver, mark delivered
         if (!isSender && receiver_id === meId) {
-            chatSocket.send(JSON.stringify({
-                'action': 'receiver_connected',
-                'receiver_id': meId
-            }));
+            chatSocket.send(
+                JSON.stringify({
+                    action: 'receiver_connected',
+                    receiver_id: meId,
+                })
+            );
         }
-
     } else if (eventType === 'status_update') {
         const ids = data.msg_ids || [];
         const newStatus = data.new_status;
-        ids.forEach(id => updateTicksForMsg(id, newStatus));
-
+        ids.forEach((id) => updateTicksForMsg(id, newStatus));
     } else if (eventType === 'presence_update') {
         updatePresenceUI(data.user_id, data.is_online, data.last_seen);
     }
@@ -148,12 +188,14 @@ document.getElementById('chat-form').onsubmit = function (e) {
     const message = inputField.value.trim();
     if (message === '') return;
 
-    chatSocket.send(JSON.stringify({
-        'action': 'send_message',
-        'message': message,
-        'sender_id': meId,
-        'receiver_id': otherUserId
-    }));
+    chatSocket.send(
+        JSON.stringify({
+            action: 'send_message',
+            message: message,
+            sender_id: meId,
+            receiver_id: otherUserId,
+        })
+    );
 
     inputField.value = '';
 };
@@ -171,7 +213,8 @@ window.addEventListener('DOMContentLoaded', () => {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
     const receiverId = Number(messagesContainer.dataset.receiverId);
-    const isOnline = messagesContainer.dataset.receiverOnline.toLowerCase() === 'true';
+    const isOnline =
+        messagesContainer.dataset.receiverOnline.toLowerCase() === 'true';
     const lastSeen = messagesContainer.dataset.receiverLastSeen || null;
 
     updatePresenceUI(receiverId, isOnline, lastSeen);
