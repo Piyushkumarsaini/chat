@@ -870,6 +870,7 @@ body {
     border-radius: 50%;
     border: 2px solid white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
 }
 
 #userProfileModal .edit-icon {
@@ -890,6 +891,7 @@ body {
     background-color: var(--whatsapp-grey-bg-light);
     border-radius: 50%;
     padding: 5px;
+    border: 1px solid var(--whatsapp-border-color);
 }
 
 #userProfileModal .profile-name-container {
@@ -950,6 +952,34 @@ body {
     background-color: #b71c1c; /* Darker red on hover */
 }
 
+/* === NEW: Editable input styles === */
+#userProfileModal .edit-input {
+    border: none;
+    border-bottom: 1px solid var(--whatsapp-border-color);
+    background: transparent;
+    color: var(--whatsapp-dark-grey-text);
+    font-size: 1rem;
+    text-align: center;
+    width: 80%;
+    outline: none;
+    padding: 4px 0;
+    margin-bottom: 5px;
+    transition: border-color 0.2s;
+}
+
+#userProfileModal .edit-input:focus {
+    border-bottom: 1px solid var(--whatsapp-accent, #25d366); /* WhatsApp green accent */
+}
+
+/* Optional: smooth transition when input appears */
+#userProfileModal .edit-input {
+    animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 #statusModal .modal-content {
     width: 400px;
