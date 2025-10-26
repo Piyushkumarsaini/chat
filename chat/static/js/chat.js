@@ -220,7 +220,9 @@ window.addEventListener('DOMContentLoaded', () => {
     updatePresenceUI(receiverId, isOnline, lastSeen);
 });
 
-// === USER PROFILE MODAL CODE ONLY ===
+
+
+// === USER PROFILE MODAL CODE (UPDATED) ===
 
 // References
 const userProfileModal = document.getElementById('userProfileModal');
@@ -228,10 +230,9 @@ const closeUserProfileBtn = document.getElementById('closeUserProfile');
 const navBottomAvatar = document.querySelector('.nav-bottom-avatar');
 const navAvatar = document.querySelector('.nav-avatar');
 
-// Utility functions (used globally)
+// Utility functions
 function closeAllModals() {
     userProfileModal.style.display = 'none';
-    // Add others here if needed (statusModal, settingsModal, etc.)
 }
 
 function closeAllPopups() {
@@ -245,7 +246,7 @@ function resetIconHighlights() {
 }
 
 // === OPEN PROFILE MODAL ===
-navAvatar.addEventListener('click', (e) => {
+navAvatar?.addEventListener('click', (e) => {
     e.stopPropagation();
     closeAllModals();
     closeAllPopups();
@@ -253,7 +254,7 @@ navAvatar.addEventListener('click', (e) => {
     resetIconHighlights();
 });
 
-navBottomAvatar.addEventListener('click', (e) => {
+navBottomAvatar?.addEventListener('click', (e) => {
     e.stopPropagation();
     closeAllModals();
     closeAllPopups();
@@ -262,7 +263,7 @@ navBottomAvatar.addEventListener('click', (e) => {
 });
 
 // === CLOSE PROFILE MODAL ===
-closeUserProfileBtn.addEventListener('click', () => {
+closeUserProfileBtn?.addEventListener('click', () => {
     userProfileModal.style.display = 'none';
     resetIconHighlights();
 });
@@ -275,27 +276,150 @@ window.addEventListener('click', (event) => {
     }
 });
 
-// === EDIT PROFILE ICONS ===
+// === EDIT PROFILE ICONS (NEW FUNCTIONALITY) ===
 const editProfileImage = document.getElementById('editProfileImage');
 const editProfileName = document.getElementById('editProfileName');
 const editProfileStatus = document.getElementById('editProfileStatus');
+const nameInput = document.getElementById('nameInput');
+const statusInput = document.getElementById('statusInput');
+const imageInput = document.getElementById('imageInput');
+const profileName = document.getElementById('profileName');
+const profileStatus = document.getElementById('profileStatus');
+const profileImage = document.getElementById('profileImage');
 
-editProfileImage?.addEventListener('click', () => {
-    alert('Edit Profile Image clicked');
-});
-
+// --- Edit Name ---
 editProfileName?.addEventListener('click', () => {
-    alert('Edit Profile Name clicked');
+    profileName.style.display = 'none';
+    nameInput.style.display = 'inline-block';
+    nameInput.focus();
+
+    const saveName = () => {
+        updateProfile({ name: nameInput.value });
+        nameInput.removeEventListener('blur', saveName);
+        nameInput.removeEventListener('keydown', handleEnter);
+    };
+
+    const handleEnter = (e) => {
+        if (e.key === 'Enter') nameInput.blur();
+    };
+
+    nameInput.addEventListener('blur', saveName);
+    nameInput.addEventListener('keydown', handleEnter);
 });
 
+// --- Edit Status ---
 editProfileStatus?.addEventListener('click', () => {
-    alert('Edit Profile Status clicked');
+    profileStatus.style.display = 'none';
+    statusInput.style.display = 'inline-block';
+    statusInput.focus();
+
+    const saveStatus = () => {
+        updateProfile({ status: statusInput.value });
+        statusInput.removeEventListener('blur', saveStatus);
+        statusInput.removeEventListener('keydown', handleEnter);
+    };
+
+    const handleEnter = (e) => {
+        if (e.key === 'Enter') statusInput.blur();
+    };
+
+    statusInput.addEventListener('blur', saveStatus);
+    statusInput.addEventListener('keydown', handleEnter);
 });
 
+// --- Edit Image ---
+editProfileImage?.addEventListener('click', () => imageInput.click());
+imageInput?.addEventListener('change', () => {
+    const file = imageInput.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('image', file);
+        sendUpdate(formData);
+    }
+});
+
+// --- Send update to Django backend ---
+function updateProfile(data) {
+    const formData = new FormData();
+    for (const key in data) formData.append(key, data[key]);
+    sendUpdate(formData);
+}
+
+function sendUpdate(formData) {
+    fetch("/update_profile/", {
+        method: "POST",
+        body: formData,
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success) {
+                if (data.name) {
+                    profileName.textContent = data.name;
+                    profileName.style.display = "block";
+                    nameInput.style.display = "none";
+                }
+                if (data.status) {
+                    profileStatus.textContent = data.status;
+                    profileStatus.style.display = "block";
+                    statusInput.style.display = "none";
+                }
+                if (data.image_url) {
+                    profileImage.src = data.image_url;
+                }
+            } else {
+                alert("Error updating profile: " + (data.error || "Unknown error"));
+            }
+        })
+        .catch((err) => {
+            console.error("Profile update failed", err);
+        });
+}
+
+// --- Get CSRF token ---
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// === LOGOUT BUTTON ===
 // === LOGOUT BUTTON ===
 const logoutBtn = document.getElementById('logoutBtn');
 logoutBtn?.addEventListener('click', () => {
-    alert('Logging out...');
-    userProfileModal.style.display = 'none';
+    // Optional: confirmation
+    if (!confirm("Are you sure you want to log out?")) return;
+
+    fetch("/logout/", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+        },
+    })
+        .then((res) => {
+            if (res.redirected) {
+                // Django redirect will send us to login page
+                window.location.href = res.url;
+            } else {
+                // Fallback if redirect didn't happen
+                window.location.href = "/login/";
+            }
+        })
+        .catch((err) => {
+            console.error("Logout failed", err);
+            alert("Logout failed. Please try again.");
+        });
+
+    userProfileModal.style.display = "none";
     resetIconHighlights();
 });
+

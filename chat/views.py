@@ -5,6 +5,9 @@ from django.db.models import Q, OuterRef, Subquery, Count
 from django.utils import timezone 
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
 
 def get_logged_in_user(request):
 	user_id = request.session.get('chat_user_id')
@@ -76,6 +79,7 @@ def get_last_message_subquery(user_id):
         # Message sent by the other user to current user OR sent by current user to the other user
         (Q(sender_id=OuterRef('id'), receiver_id=user_id) | Q(sender_id=user_id, receiver_id=OuterRef('id')))
     ).order_by('-timestamp').values('id')[:1]
+
 
 def chat_list_view(request):
     current_user = get_logged_in_user(request)
@@ -168,6 +172,31 @@ def get_profile(request):
     return profile_data
 
 
+def update_profile(request):
+    user = get_logged_in_user(request)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        status = request.POST.get('status')
+        image = request.FILES.get('image')
+
+        if name:
+            user.name = name
+        if status:
+            user.status = status
+        if image:
+            user.image = image
+
+        user.save()
+
+        return JsonResponse({
+            'success': True,
+            'name': user.name,
+            'status': user.status,
+            'image_url': user.image.url if user.image else 'https://via.placeholder.com/120'
+        })
+
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
 def chat_view(request, username):
 	# username here will be number for ChatUser links
 	user = get_logged_in_user(request)
@@ -212,38 +241,38 @@ def chat_view(request, username):
 	})
 
 
-MESSAGES_PER_PAGE = 20
+# MESSAGES_PER_PAGE = 20
 
-def load_messages(request, username):
-	user = get_logged_in_user(request)
-	if not user:
-		return JsonResponse({'error': 'Unauthorized'}, status=401)
+# def load_messages(request, username):
+# 	user = get_logged_in_user(request)
+# 	if not user:
+# 		return JsonResponse({'error': 'Unauthorized'}, status=401)
 
-	receiver = get_object_or_404(ChatUser, number=username)
+# 	receiver = get_object_or_404(ChatUser, number=username)
 
-	page = int(request.GET.get('page', 1))
+# 	page = int(request.GET.get('page', 1))
 
-	messages_qs = ChatMessage.objects.filter(
-		(Q(sender=user) & Q(receiver=receiver)) |
-		(Q(sender=receiver) & Q(receiver=user))
-	).order_by('-timestamp')
+# 	messages_qs = ChatMessage.objects.filter(
+# 		(Q(sender=user) & Q(receiver=receiver)) |
+# 		(Q(sender=receiver) & Q(receiver=user))
+# 	).order_by('-timestamp')
 
-	paginator = Paginator(messages_qs, MESSAGES_PER_PAGE)
-	if page > paginator.num_pages:
-		return JsonResponse({
-			'messages': [],
-			'has_more': False
-		})
-	page_obj = paginator.get_page(page)
+# 	paginator = Paginator(messages_qs, MESSAGES_PER_PAGE)
+# 	if page > paginator.num_pages:
+# 		return JsonResponse({
+# 			'messages': [],
+# 			'has_more': False
+# 		})
+# 	page_obj = paginator.get_page(page)
 
-	messages = list(page_obj.object_list.values(
-		'content', 'sender_id', 'receiver_id', 'timestamp'
-	))
+# 	messages = list(page_obj.object_list.values(
+# 		'content', 'sender_id', 'receiver_id', 'timestamp'
+# 	))
 
-	return JsonResponse({
-		'messages': messages[::-1],  # Reverse to show oldest at top
-		'has_more': page_obj.has_next()
-	})
+# 	return JsonResponse({
+# 		'messages': messages[::-1],  # Reverse to show oldest at top
+# 		'has_more': page_obj.has_next()
+# 	})
 
-def lobby_view(request):
-    return render(request, 'chat_app/lobby.html')
+# def lobby_view(request):
+#     return render(request, 'chat_app/lobby.html')

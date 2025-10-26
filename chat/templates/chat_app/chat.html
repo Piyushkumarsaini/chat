@@ -237,13 +237,16 @@
                 <div class="profile-image-container">
                     <img src="{{ profile_data.image }}" alt="User Profile" class="avatar-large">
                     <i class="fas fa-edit edit-icon image-edit-icon" id="editProfileImage"></i>
+                    <input type="file" id="imageInput" style="display:none;" accept="image/*">
                 </div>
                 <div class="profile-name-container">
                     <div class="user-name" id="profileName">{{ profile_data.name }}</div>
+                    <input type="text" id="nameInput" class="edit-input" style="display:none;" value="{{ profile_data.name }}">
                     <i class="fas fa-edit edit-icon name-edit-icon" id="editProfileName"></i>
                 </div>
                 <div class="profile-status-container">
                     <div class="user-status" id="profileStatus">{{ profile_data.status }}</div>
+                    <input type="text" id="statusInput" class="edit-input" style="display:none;" value="{{ profile_data.status }}">
                     <i class="fas fa-edit edit-icon status-edit-icon" id="editProfileStatus"></i>
                 </div>
             </div>
