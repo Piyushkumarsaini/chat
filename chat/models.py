@@ -9,12 +9,12 @@ class ChatUser(models.Model):
 	password = models.CharField(max_length=128)  # store hashed or plain depending on implementation
 	is_online = models.BooleanField(default=False)
 	last_seen = models.DateTimeField(null=True, blank=True)
- 
+  
 	def update_last_seen(self):
 		self.last_seen = timezone.now()
 		self.is_online = False
-		self.save()
-     
+		self.save()     
+  
 	def __str__(self):
 		return f"{self.name} <{self.number}>"
 

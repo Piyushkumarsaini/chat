@@ -234,15 +234,24 @@
         <div class="modal-content user-profile-modal">
             <span class="close" id="closeUserProfile">&times;</span>
             <div class="header">
-                <img src="https://via.placeholder.com/120" alt="User Profile" class="avatar-large">
-                <div class="user-name" id="profileName">Your Name</div>
-                <div class="user-status" id="profileStatus">Hey there! I am using In Chat.</div>
+                <div class="profile-image-container">
+                    <img src="https://via.placeholder.com/120" alt="User Profile" class="avatar-large">
+                    <i class="fas fa-edit edit-icon image-edit-icon" id="editProfileImage"></i>
+                </div>
+                <div class="profile-name-container">
+                    <div class="user-name" id="profileName">Your Name</div>
+                    <i class="fas fa-edit edit-icon name-edit-icon" id="editProfileName"></i>
+                </div>
+                <div class="profile-status-container">
+                    <div class="user-status" id="profileStatus">Hey there! I am using In Chat.</div>
+                    <i class="fas fa-edit edit-icon status-edit-icon" id="editProfileStatus"></i>
+                </div>
             </div>
             <div class="info-item">
                 <span>Phone</span>
                 <span id="profilePhone">+1234567890</span>
             </div>
-            <button id="editProfileBtn" class="edit-profile-btn">Edit Profile</button>
+            <button id="logoutBtn" class="logout-btn">Log Out</button>
         </div>
     </div>
 

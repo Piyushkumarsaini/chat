@@ -855,27 +855,69 @@ body {
     width: 100%;
 }
 
+#userProfileModal .profile-image-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
 #userProfileModal .avatar-large {
     width: 120px;
     height: 120px;
     background-color: #ccc;
     border-radius: 50%;
-    margin: 0 auto 10px;
     border: 2px solid white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#userProfileModal .edit-icon {
+    font-size: 1rem;
+    color: var(--whatsapp-medium-grey-text);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+#userProfileModal .edit-icon:hover {
+    color: var(--whatsapp-dark-grey-text);
+}
+
+#userProfileModal .image-edit-icon {
+    position: absolute;
+    right: -10px;
+    bottom: 10px;
+    background-color: var(--whatsapp-grey-bg-light);
+    border-radius: 50%;
+    padding: 5px;
+}
+
+#userProfileModal .profile-name-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
 }
 
 #userProfileModal .user-name {
     font-size: 1.3rem;
     font-weight: 600;
     color: var(--whatsapp-dark-grey-text);
-    margin-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+#userProfileModal .name-edit-icon {
+    margin-left: 5px;
 }
 
 #userProfileModal .user-status {
     font-size: 0.9rem;
     color: var(--whatsapp-medium-grey-text);
-    margin-bottom: 15px;
+    margin-right: 10px;
+}
+
+#userProfileModal .status-edit-icon {
+    margin-left: 5px;
 }
 
 #userProfileModal .info-item {
@@ -892,10 +934,10 @@ body {
     color: var(--whatsapp-medium-grey-text);
 }
 
-#userProfileModal .edit-profile-btn {
+#userProfileModal .logout-btn {
     margin-top: 20px;
     padding: 10px 20px;
-    background-color: var(--whatsapp-green);
+    background-color: #d32f2f; /* Red color for logout */
     color: white;
     border: none;
     border-radius: 20px;
@@ -904,8 +946,8 @@ body {
     transition: background-color 0.2s;
 }
 
-#userProfileModal .edit-profile-btn:hover {
-    background-color: #008069;
+#userProfileModal .logout-btn:hover {
+    background-color: #b71c1c; /* Darker red on hover */
 }
 
 #statusModal .modal-content {
