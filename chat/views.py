@@ -156,6 +156,18 @@ def chat_list_view(request):
         'current_user': current_user,
     })
 
+
+def get_profile(request):
+    user = get_logged_in_user(request)
+    profile_data = {
+        'name': user.name,
+        'status': user.status,
+        'phone': user.number,
+        'profile_image': user.image.url if user.image else 'https://via.placeholder.com/120',
+    }
+    return profile_data
+
+
 def chat_view(request, username):
 	# username here will be number for ChatUser links
 	user = get_logged_in_user(request)
@@ -186,13 +198,19 @@ def chat_view(request, username):
 		if content:
 			ChatMessage.objects.create(sender=user, receiver=receiver, content=content, status='sent')
 		return redirect('chat', username=receiver.number)
-
+    
+    
+	# Call get_profile and add its data to the context
+	profile_data = get_profile(request)
+    
 	return render(request, 'chat_app/chat.html', {
 		'receiver': receiver,
 		'messages': messages,
 		'current_user': user,
 		'room_name': room_name,
+		'profile_data': profile_data,
 	})
+
 
 MESSAGES_PER_PAGE = 20
 
