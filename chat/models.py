@@ -3,20 +3,22 @@ from time import timezone
 
 # Create your models here.
 class ChatUser(models.Model):
-	id = models.AutoField(primary_key=True)
-	name = models.CharField(max_length=150)
-	number = models.CharField(max_length=50, unique=True)
-	password = models.CharField(max_length=128)  # store hashed or plain depending on implementation
-	is_online = models.BooleanField(default=False)
-	last_seen = models.DateTimeField(null=True, blank=True)
-  
-	def update_last_seen(self):
-		self.last_seen = timezone.now()
-		self.is_online = False
-		self.save()     
-  
-	def __str__(self):
-		return f"{self.name} <{self.number}>"
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=150)
+    number = models.CharField(max_length=50, unique=True)
+    password = models.CharField(max_length=128)  # Store hashed password
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=200, blank=True, default='Hey there! I am using In Chat.')
+    image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
+
+    def update_last_seen(self):
+        self.last_seen = timezone.now()
+        self.is_online = False
+        self.save()
+
+    def __str__(self):
+        return f"{self.name} <{self.number}>"
 
 class ChatMessage(models.Model):
 	sender = models.ForeignKey(ChatUser, related_name='sent_chat_messages', on_delete=models.CASCADE)
