@@ -219,3 +219,83 @@ window.addEventListener('DOMContentLoaded', () => {
 
     updatePresenceUI(receiverId, isOnline, lastSeen);
 });
+
+// === USER PROFILE MODAL CODE ONLY ===
+
+// References
+const userProfileModal = document.getElementById('userProfileModal');
+const closeUserProfileBtn = document.getElementById('closeUserProfile');
+const navBottomAvatar = document.querySelector('.nav-bottom-avatar');
+const navAvatar = document.querySelector('.nav-avatar');
+
+// Utility functions (used globally)
+function closeAllModals() {
+    userProfileModal.style.display = 'none';
+    // Add others here if needed (statusModal, settingsModal, etc.)
+}
+
+function closeAllPopups() {
+    document.querySelectorAll('.emoji-popup, .attachment-popup, .chat-menu-popup')
+        .forEach(popup => popup.style.display = 'none');
+}
+
+function resetIconHighlights() {
+    document.querySelectorAll('.nav-icons i').forEach(icon => icon.classList.remove('active'));
+    document.getElementById('chatsIcon')?.classList.add('active'); // default highlight
+}
+
+// === OPEN PROFILE MODAL ===
+navAvatar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeAllModals();
+    closeAllPopups();
+    userProfileModal.style.display = 'block';
+    resetIconHighlights();
+});
+
+navBottomAvatar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeAllModals();
+    closeAllPopups();
+    userProfileModal.style.display = 'block';
+    resetIconHighlights();
+});
+
+// === CLOSE PROFILE MODAL ===
+closeUserProfileBtn.addEventListener('click', () => {
+    userProfileModal.style.display = 'none';
+    resetIconHighlights();
+});
+
+// === CLICK OUTSIDE TO CLOSE ===
+window.addEventListener('click', (event) => {
+    if (event.target === userProfileModal) {
+        userProfileModal.style.display = 'none';
+        resetIconHighlights();
+    }
+});
+
+// === EDIT PROFILE ICONS ===
+const editProfileImage = document.getElementById('editProfileImage');
+const editProfileName = document.getElementById('editProfileName');
+const editProfileStatus = document.getElementById('editProfileStatus');
+
+editProfileImage?.addEventListener('click', () => {
+    alert('Edit Profile Image clicked');
+});
+
+editProfileName?.addEventListener('click', () => {
+    alert('Edit Profile Name clicked');
+});
+
+editProfileStatus?.addEventListener('click', () => {
+    alert('Edit Profile Status clicked');
+});
+
+// === LOGOUT BUTTON ===
+const logoutBtn = document.getElementById('logoutBtn');
+logoutBtn?.addEventListener('click', () => {
+    alert('Logging out...');
+    userProfileModal.style.display = 'none';
+    resetIconHighlights();
+});
