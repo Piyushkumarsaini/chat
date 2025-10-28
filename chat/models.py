@@ -59,13 +59,11 @@ class ChatMessage(models.Model):
 	def __str__(self):
 		return f"{self.sender} -> {self.receiver}: {self.content[:20]} ({self.status})"
 
-
-# models.py
 class TempUser(models.Model):
-    id = models.AutoField(primary_key=True)
     country_code = models.CharField(max_length=10)
-    number = models.CharField(max_length=20)
-    otp = models.CharField(max_length=6)
+    number = models.CharField(max_length=15, unique=True)
+    otp = models.CharField(max_length=6, blank=True, null=True)
+    otp_secret = models.CharField(max_length=64, blank=True, null=True)  # 👈 add this
     otp_created_at = models.DateTimeField(auto_now_add=True)
     is_verified = models.BooleanField(default=False)
 

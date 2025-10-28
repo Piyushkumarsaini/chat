@@ -2,9 +2,11 @@ from django.urls import path, include
 from . import views
 
 urlpatterns = [
-    path('signup/', views.signup_view, name='signup'),
+    path('api/signup/', views.signup_view, name='signup'),
+    path('check-phone/', views.check_phone, name='check_phone'),
     path('send-otp/', views.send_otp, name='send_otp'),
     path('verify-otp/', views.verify_otp, name='verify_otp'),
+    path('complete-signup/', views.complete_signup, name='complete_signup'),
     
     path('login/', views.phone_login_page, name='phone_login_page'),
     path('api/send-otp/', views.phone_login, name='phone_login'),

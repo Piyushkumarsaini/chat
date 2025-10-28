@@ -1,39 +1,168 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import ChatUser, ChatMessage
-from .forms import SignupForm, PhoneNumberForm, OTPForm
+from .models import ChatUser, ChatMessage, TempUser
+from .forms import SignupForm, PhoneNumberForm
 from django.db.models import Q, OuterRef, Subquery, Count
 from django.utils import timezone 
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+import pyotp
+from django.middleware.csrf import get_token
 
+
+
+
+# ---------------------------
+# Helper Functions
+# ---------------------------
 def get_logged_in_user(request):
-	user_id = request.session.get('chat_user_id')
-	if not user_id:
-		return None
-	try:
-		return ChatUser.objects.get(id=user_id)
-	except ChatUser.DoesNotExist:
-		return None
+    """Retrieve the currently logged-in ChatUser from session."""
+    user_id = request.session.get('chat_user_id')
+    if not user_id:
+        return None
+    try:
+        return ChatUser.objects.get(id=user_id)
+    except ChatUser.DoesNotExist:
+        return None
 
-# def signup_view(request):
-#     if request.method == 'POST':
-#         form = SignupForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             number = form.cleaned_data['number']
 
-#             # Check if number already exists
-#             if ChatUser.objects.filter(number=number).exists():
-#                 form.add_error('number', 'This phone number is already registered.')
-#             else:
-#                 form.save()
-#                 return redirect('login')  # or your chat homepage
-#     else:
-#         form = SignupForm()
+# ---------------------------
+# Views: Signup & User Management
+# ---------------------------
+def signup_view(request):
+    """Render signup form and handle initial registration submission."""
+    get_token(request)  # Ensure CSRF token
 
-#     return render(request, 'chat_app/signup.html', {'form': form})
+    if request.method == 'POST':
+        form = SignupForm(request.POST, request.FILES)
+        if form.is_valid():
+            country_code = form.cleaned_data['country_code']
+            number = form.cleaned_data['number']
+
+            # Check if number already exists
+            if ChatUser.objects.filter(number=number).exists():
+                form.add_error('number', 'This phone number is already registered.')
+            else:
+                form.save()
+                return redirect('login')
+    else:
+        form = SignupForm()
+
+    return render(request, 'chat_app/signup.html', {'form': form})
+
+
+def check_phone(request):
+    """Check if a phone number is already registered."""
+    number = request.GET.get('number')
+    exists = ChatUser.objects.filter(number=number).exists()
+    return JsonResponse({'exists': exists})
+
+
+# ---------------------------
+# Views: OTP Handling
+# ---------------------------
+def send_otp(request):
+    """Generate a time-based OTP and store temporary secret in TempUser."""
+    country_code = request.GET.get('country_code')
+    number = request.GET.get('number')
+
+    if not number:
+        return JsonResponse({'success': False, 'error': 'Phone number is required.'})
+
+    if ChatUser.objects.filter(number=number).exists():
+        return JsonResponse({'success': False, 'error': 'This number is already registered.'})
+
+    # Generate OTP
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret, interval=300)  # 5 minutes
+    otp = totp.now()
+
+    # Store temporary user
+    TempUser.objects.update_or_create(
+        number=number,
+        defaults={
+            'country_code': country_code,
+            'otp': otp,  # optional: for debug/logging
+            'otp_secret': secret,
+            'otp_created_at': timezone.now(),
+            'is_verified': False
+        }
+    )
+
+    # Debug: simulate sending SMS
+    print(f"📱 [DEBUG] OTP for {country_code}{number} is {otp}")
+
+    return JsonResponse({'success': True, 'message': 'OTP sent successfully'})
+
+
+def verify_otp(request):
+    """Verify OTP submitted by user."""
+    number = request.GET.get('number')
+    otp = request.GET.get('otp')
+
+    if not number or not otp:
+        return JsonResponse({'success': False, 'error': 'Missing number or OTP.'})
+
+    try:
+        temp_user = TempUser.objects.get(number=number)
+    except TempUser.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Number not found.'})
+
+    if not temp_user.otp_secret:
+        return JsonResponse({'success': False, 'error': 'No OTP secret found.'})
+
+    totp = pyotp.TOTP(temp_user.otp_secret, interval=300)
+
+    # Allow ±1 step for clock skew
+    if totp.verify(otp, valid_window=1):
+        temp_user.is_verified = True
+        temp_user.save()
+        return JsonResponse({'success': True, 'message': 'OTP verified successfully'})
+    else:
+        return JsonResponse({'success': False, 'error': 'Invalid or expired OTP.'})
+
+
+# ---------------------------
+# Views: Completing Signup
+# ---------------------------
+def complete_signup(request):
+    """
+    After OTP verification, create ChatUser and finalize signup.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method.'})
+
+    name = request.POST.get('name')
+    number = request.POST.get('number')
+    country_code = request.POST.get('country_code')
+    image = request.FILES.get('image')
+
+    if not name:
+        return JsonResponse({'success': False, 'error': 'Name is required.'})
+
+    try:
+        temp_user = TempUser.objects.get(number=number, is_verified=True)
+    except TempUser.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Phone not verified yet.'})
+
+    # Create or update ChatUser
+    user, created = ChatUser.objects.get_or_create(
+        number=number,
+        defaults={'country_code': country_code, 'name': name, 'image': image}
+    )
+
+    # Store user ID in session
+    request.session['chat_user_id'] = user.id
+
+    # Cleanup TempUser
+    temp_user.delete()
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Signup complete!',
+        'username': user.name or user.number
+    })
 
 
 def phone_login_page(request):
@@ -128,7 +257,7 @@ def get_last_message_subquery(user_id):
 def chat_list_view(request):
     current_user = get_logged_in_user(request)
     if not current_user:
-        return redirect('login')
+        return redirect('signup')
 
     # 1. Fetch users except current user
     users = ChatUser.objects.exclude(id=current_user.id).annotate(
@@ -320,113 +449,3 @@ def chat_view(request, username):
 
 # def lobby_view(request):
 #     return render(request, 'chat_app/lobby.html')
-
-import random
-from django.http import JsonResponse
-from django.shortcuts import render, redirect
-from django.utils import timezone
-import phonenumbers
-from .models import TempUser, ChatUser
-from .forms import SignupForm
-
-# -------------------- SEND OTP --------------------
-def send_otp(request):
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
-
-    country_code = request.POST.get('country_code')
-    number = request.POST.get('number')
-
-    if not country_code or not number:
-        return JsonResponse({'status': 'error', 'message': 'Country code and number required.'})
-
-    # Normalize number to E.164
-    try:
-        parsed = phonenumbers.parse(f"{country_code}{number}", None)
-        full_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
-    except phonenumbers.NumberParseException:
-        return JsonResponse({'status': 'error', 'message': 'Invalid phone number format.'})
-
-    # Check if already registered
-    if ChatUser.objects.filter(number=full_number).exists():
-        return JsonResponse({'status': 'exists', 'message': 'This number is already registered. Please login.'})
-
-    # Generate numeric OTP
-    otp = f"{random.randint(100000, 999999)}"
-
-    # Create or update TempUser
-    temp_user, created = TempUser.objects.get_or_create(
-        number=full_number,
-        defaults={'country_code': country_code, 'otp': otp}
-    )
-    if not created:
-        temp_user.otp = otp
-        temp_user.otp_created_at = timezone.now()
-        temp_user.is_verified = False
-        temp_user.save()
-
-    # Send OTP via SMS API here. For testing:
-    print(f"OTP for {full_number}: {otp}")
-
-    return JsonResponse({'status': 'success', 'message': 'OTP sent successfully!'})
-
-# -------------------- VERIFY OTP --------------------
-def verify_otp(request):
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
-
-    country_code = request.POST.get('country_code')
-    number = request.POST.get('number')
-    otp_input = request.POST.get('otp')
-
-    # Normalize number to E.164
-    try:
-        parsed = phonenumbers.parse(f"{country_code}{number}", None)
-        full_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
-    except phonenumbers.NumberParseException:
-        return JsonResponse({'status': 'error', 'message': 'Invalid phone number format.'})
-
-    try:
-        temp_user = TempUser.objects.get(number=full_number)
-    except TempUser.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'No OTP request found for this number.'})
-
-    # Check expiry (5 minutes)
-    if (timezone.now() - temp_user.otp_created_at).total_seconds() > 300:
-        return JsonResponse({'status': 'error', 'message': 'OTP expired, please request again.'})
-
-    # Verify OTP
-    if otp_input != temp_user.otp:
-        return JsonResponse({'status': 'error', 'message': 'Invalid OTP.'})
-
-    temp_user.is_verified = True
-    temp_user.save()
-
-    return JsonResponse({'status': 'success', 'message': 'OTP verified successfully!'})
-
-# -------------------- SIGNUP --------------------
-def signup_view(request):
-    if request.method == 'POST':
-        form = SignupForm(request.POST, request.FILES)
-        if form.is_valid():
-            country_code = form.cleaned_data['country_code']
-            number = form.cleaned_data['number']
-
-            try:
-                temp_user = TempUser.objects.get(number=number, is_verified=True)
-            except TempUser.DoesNotExist:
-                form.add_error('number', 'Please verify OTP before signing up.')
-                return render(request, 'chat_app/signup.html', {'form': form})
-
-            if ChatUser.objects.filter(number=number).exists():
-                form.add_error('number', 'This phone number is already registered.')
-                return render(request, 'chat_app/signup.html', {'form': form})
-
-            form.save()
-            temp_user.delete()
-            return redirect('login')
-    else:
-        form = SignupForm()
-
-    return render(request, 'chat_app/signup.html', {'form': form})
-

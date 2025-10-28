@@ -8,7 +8,7 @@
   body {
     margin: 0;
     font-family: "Segoe UI", sans-serif;
-    background-color: #fff;
+    background-color: #e5ddd5;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -24,13 +24,21 @@
     padding: 25px;
     text-align: center;
     animation: fadeIn 0.8s ease;
-    border-top: 8px solid #ff9933;
-    border-bottom: 8px solid #138808;
+    border-top: 8px solid #25d366;
+    border-bottom: 8px solid #128c7e;
+    position: relative;
   }
 
   h2 {
-    color: #138808;
+    color: #128c7e;
+    margin-bottom: 10px;
+    font-size: 1.6em;
+  }
+
+  h3 {
+    color: #075e54;
     margin-bottom: 20px;
+    font-weight: normal;
   }
 
   label {
@@ -52,8 +60,8 @@
   }
 
   select:focus, input:focus {
-    border-color: #138808;
-    box-shadow: 0 0 0 2px rgba(19,136,8,0.2);
+    border-color: #25d366;
+    box-shadow: 0 0 0 2px rgba(37,211,102,0.2);
   }
 
   button {
@@ -61,7 +69,7 @@
     padding: 12px;
     border: none;
     border-radius: 8px;
-    background-color: #ff9933;
+    background-color: #25d366;
     color: white;
     font-size: 1em;
     cursor: pointer;
@@ -70,7 +78,7 @@
   }
 
   button:hover {
-    background-color: #e68a00;
+    background-color: #128c7e;
   }
 
   .message {
@@ -80,12 +88,7 @@
   }
 
   .error { color: #d93025; }
-  .success { color: #138808; }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  .success { color: #25d366; }
 
   img.preview {
     width: 120px;
@@ -95,18 +98,39 @@
     margin-top: 15px;
   }
 
-  .step {
-    display: none;
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .login-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background-color: #128c7e;
+    font-size: 0.9em;
+    width: auto;
+    padding: 8px 12px;
+    border-radius: 6px;
   }
 
-  .step.active {
-    display: block;
+  .family-banner {
+    background-color: #25d366;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 1em;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>
 </head>
 <body>
   <div class="container">
-    <h2>Signup - In Chat</h2>
+   <h2>Welcome to In Chat</h2>
+   <h3>Connect with your friends and family instantly</h3>
 
     <!-- STEP 1: Phone Input -->
     <div id="step1" class="step active">
@@ -122,9 +146,9 @@
       <label for="phone">Enter Phone Number</label>
       <input type="tel" id="phone" placeholder="Enter number" maxlength="10" required />
 
-      <div id="phoneError" class="message error"></div>
-
+      <div id="phoneError" class="message"></div>
       <button id="nextToOtp">Next</button>
+      <p style="margin-top:15px; font-size:0.85em;">Already part of the family? <a href="/login/" style="color:#128c7e; text-decoration:none;">Login here</a></p>
     </div>
 
     <!-- STEP 2: OTP Verification -->
@@ -134,6 +158,8 @@
       <input type="number" id="otp" placeholder="Enter OTP" maxlength="6" />
       <div id="otpError" class="message error"></div>
       <button id="verifyOtp">Verify</button>
+      <button id="resendOtp" style="margin-top:10px; background-color:#128c7e;">Resend OTP</button>
+      <div id="resendMessage" class="message"></div>
     </div>
 
     <!-- STEP 3: Profile Setup -->
@@ -149,148 +175,172 @@
       <button id="finishSignup">Finish Signup</button>
     </div>
   </div>
-<script>
-const countrySelect = document.getElementById("countryCode");
-const phoneInput = document.getElementById("phone");
-const phoneError = document.getElementById("phoneError");
-const otpInput = document.getElementById("otp");
-const otpError = document.getElementById("otpError");
-const previewImg = document.getElementById("preview");
-const fileInput = document.getElementById("image");
 
-const step1 = document.getElementById("step1");
-const step2 = document.getElementById("step2");
-const step3 = document.getElementById("step3");
+  <!-- Footer button always visible -->
+  <button id="footerButton" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:200px; background-color:#ff9933;">Need Help?</button>
 
-const phoneRules = {
-  "+91": 10,
-  "+1": 10,
-  "+44": 10,
-  "+61": 9,
-  "+81": 10
-};
-
-// ---------------- CSRF helper ----------------
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-      cookie = cookie.trim();
-      if (cookie.startsWith(name + '=')) {
-        cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
-        break;
+  <!-- CSRF Token Handling -->
+  <script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
       }
+      return cookieValue;
     }
-  }
-  return cookieValue;
-}
-const csrftoken = getCookie('csrftoken');
+    const csrftoken = getCookie('csrftoken');
+  </script>
 
-// ----------------- OTP numeric only -----------------
-otpInput.addEventListener("input", (e) => {
-  e.target.value = e.target.value.replace(/\D/g,'').slice(0,6);
-});
+  <script>
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
 
-// ---------------- Step 1: Send OTP ----------------
-document.getElementById("nextToOtp").addEventListener("click", async () => {
-  const code = countrySelect.value;
-  const number = phoneInput.value.trim();
-  const expectedLen = phoneRules[code] || 10;
+    const phone = document.getElementById('phone');
+    const phoneError = document.getElementById('phoneError');
+    const otpError = document.getElementById('otpError');
+    const otpInput = document.getElementById('otp');
+    const countryCode = document.getElementById('countryCode');
+    const resendBtn = document.getElementById('resendOtp');
+    const resendMsg = document.getElementById('resendMessage');
 
-  // Validation
-  if (!/^\d+$/.test(number)) {
-    phoneError.textContent = "❌ Please enter digits only.";
-    return;
-  }
-  if (number.length !== expectedLen) {
-    phoneError.textContent = `❌ Must be ${expectedLen} digits for ${code}`;
-    return;
-  }
-  phoneError.textContent = "";
+    const nextBtn = document.getElementById('nextToOtp');
+    const verifyBtn = document.getElementById('verifyOtp');
+    const finishBtn = document.getElementById('finishSignup');
+    const imageInput = document.getElementById('image');
+    const preview = document.getElementById('preview');
+    const footerBtn = document.getElementById('footerButton');
+    const loginBtn = document.getElementById('loginBtn');
 
-  try {
-    const response = await fetch('/send-otp/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-CSRFToken': csrftoken
-      },
-      body: `country_code=${encodeURIComponent(code)}&number=${encodeURIComponent(number)}`
+    let currentPhone = "";
+
+    // Step 1: Check phone and send OTP
+    nextBtn.addEventListener('click', () => {
+      currentPhone = phone.value.trim();
+      if (!/^\d{10}$/.test(currentPhone)) {
+        phoneError.textContent = "Please enter a valid 10-digit phone number.";
+        phoneError.className = 'message error';
+        return;
+      }
+      phoneError.textContent = "Checking...";
+      fetch(`/check-phone/?number=${currentPhone}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.exists) {
+            phoneError.textContent = "This number is already registered.";
+            phoneError.className = 'message error';
+          } else {
+            sendOTP();
+          }
+        });
     });
 
-    const data = await response.json();
-
-    if (data.status === 'success') {
-      alert(data.message);
-      step1.classList.remove("active");
-      step2.classList.add("active");
-    } else {
-      phoneError.textContent = "❌ " + data.message;
+    function sendOTP() {
+      fetch(`/send-otp/?country_code=${countryCode.value}&number=${currentPhone}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            phoneError.textContent = "OTP sent successfully!";
+            step1.classList.remove('active');
+            step2.classList.add('active');
+          } else {
+            phoneError.textContent = data.error;
+          }
+        });
     }
-  } catch (err) {
-    console.error(err);
-    phoneError.textContent = "❌ Something went wrong, please try again.";
-  }
-});
 
-// ---------------- Step 2: Verify OTP ----------------
-document.getElementById("verifyOtp").addEventListener("click", async () => {
-  const otp = otpInput.value.trim();
-  const code = countrySelect.value;
-  const number = phoneInput.value.trim();
-
-  if (otp.length !== 6) {
-    otpError.textContent = "❌ Enter valid 6-digit OTP.";
-    return;
-  }
-  otpError.textContent = "";
-
-  try {
-    const response = await fetch('/verify-otp/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-CSRFToken': csrftoken
-      },
-      body: `country_code=${encodeURIComponent(code)}&number=${encodeURIComponent(number)}&otp=${encodeURIComponent(otp)}`
+    // Resend OTP
+    resendBtn.addEventListener('click', () => {
+      resendMsg.textContent = "Resending OTP...";
+      fetch(`/send-otp/?country_code=${countryCode.value}&number=${currentPhone}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            resendMsg.textContent = "OTP resent successfully!";
+            resendMsg.className = "message success";
+          } else {
+            resendMsg.textContent = data.error;
+            resendMsg.className = "message error";
+          }
+        });
     });
 
-    const data = await response.json();
+    // Step 2: Verify OTP
+    verifyBtn.addEventListener('click', () => {
+      const otp = otpInput.value.trim();
+      otpError.textContent = "Verifying...";
+      fetch(`/verify-otp/?number=${currentPhone}&otp=${otp}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            otpError.textContent = "OTP verified!";
+            otpError.className = 'message success';
+            step2.classList.remove('active');
+            step3.classList.add('active');
+          } else {
+            otpError.textContent = data.error;
+            otpError.className = 'message error';
+          }
+        });
+    });
 
-    if (data.status === 'success') {
-      alert(data.message);
-      step2.classList.remove("active");
-      step3.classList.add("active");
-    } else {
-      otpError.textContent = "❌ " + data.message;
-    }
-  } catch (err) {
-    console.error(err);
-    otpError.textContent = "❌ Something went wrong, please try again.";
-  }
-});
+    // Step 3: Image preview
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0];
+      if (file) preview.src = URL.createObjectURL(file);
+    });
 
-// ---------------- Step 3: Finish Signup ----------------
-document.getElementById("finishSignup").addEventListener("click", () => {
-  const name = document.getElementById("name").value.trim();
-  if (name === "") {
-    alert("❌ Please enter your name.");
-    return;
-  }
-  alert("🎉 Signup Complete!");
-  // Optionally submit form or redirect
-});
+    // Step 3: Finish signup
+    finishBtn.addEventListener('click', () => {
+      const name = document.getElementById('name').value.trim();
+      if (!name) {
+        alert("Please enter your name.");
+        return;
+      }
 
-// ---------------- Image Preview ----------------
-fileInput.addEventListener("change", e => {
-  const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = () => previewImg.src = reader.result;
-    reader.readAsDataURL(file);
-  }
-});
-</script>
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('number', currentPhone);
+      formData.append('country_code', countryCode.value);
+      formData.append('image', imageInput.files[0]);
+
+      fetch('/complete-signup/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken },
+        body: formData,
+        credentials: 'include'
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert("Signup completed successfully!");
+          window.location.href = `/chat/${encodeURIComponent(data.username)}/`;
+        } else {
+          alert(data.error);
+        }
+      })
+      .catch(err => {
+        console.error("Signup failed:", err);
+        alert("Something went wrong. Check console.");
+      });
+    });
+
+    // Footer button action
+    footerBtn.addEventListener('click', () => {
+      alert("For help, please contact support@example.com or check the FAQ.");
+    });
+
+    // Login button action
+    loginBtn.addEventListener('click', () => {
+      window.location.href = '/login/';
+    });
+  </script>
 </body>
 </html>
