@@ -857,10 +857,7 @@ body {
 
 #userProfileModal .profile-image-container {
     position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 15px;
+    display: inline-block;
 }
 
 #userProfileModal .avatar-large {
