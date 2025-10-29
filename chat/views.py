@@ -180,63 +180,54 @@ def phone_login(request):
         form = PhoneNumberForm(data)
         if not form.is_valid():
             return JsonResponse({'status': 'error', 'message': form.errors.get('number', ['Invalid number'])[0]})
-
-   
-
+  
         number = form.cleaned_data['number']
-
         # Check if the user exists first
         try:
             user = ChatUser.objects.get(number=number)
         except ChatUser.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'This number is not registered.'})
-
-
+        
         # Generate OTP
         otp = user.generate_otp()
         print(f"✅ OTP for {number}: {otp}")  # Debug — In production, send via SMS API
-
         request.session['pending_user'] = user.id
         return JsonResponse({'status': 'success', 'message': 'OTP sent to your number.'})
-
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
 
-# # Step 2: Verify OTP
-# @csrf_exempt
-# def verify_otp(request):
-#     if request.method == 'POST':
-#         data = json.loads(request.body.decode('utf-8'))
-#         entered_otp = data.get('otp')
-#         user_id = request.session.get('pending_user')
+# Step 2: Verify OTP
+@csrf_exempt
+def login_verify_otp(request):
+    if request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        entered_otp = data.get('otp')
+        user_id = request.session.get('pending_user')
 
-#         if not user_id:
-#             return JsonResponse({'status': 'error', 'message': 'Session expired, please start again.'})
+        if not user_id:
+            return JsonResponse({'status': 'error', 'message': 'Session expired, please start again.'})
 
-#         try:
-#             user = ChatUser.objects.get(id=user_id)
-#         except ChatUser.DoesNotExist:
-#             return JsonResponse({'status': 'error', 'message': 'User not found.'})
+        try:
+            user = ChatUser.objects.get(id=user_id)
+        except ChatUser.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'User not found.'})
+        if user.verify_otp(entered_otp):
+            request.session['is_authenticated'] = True
+            request.session['chat_user_id'] = user.id
+            user.is_online = True
+            user.save()
+            if 'pending_user' in request.session:
+                del request.session['pending_user']
 
-#         if user.verify_otp(entered_otp):
-#             request.session['is_authenticated'] = True
-#             request.session['chat_user_id'] = user.id
-#             user.is_online = True
-#             user.save()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'OTP verified successfully!',
+                'redirect_url': '/chat/'
+            })
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid or expired OTP.'})
 
-#             if 'pending_user' in request.session:
-#                 del request.session['pending_user']
-
-#             return JsonResponse({
-#                 'status': 'success',
-#                 'message': 'OTP verified successfully!',
-#                 'redirect_url': '/chat/'
-#             })
-#         else:
-#             return JsonResponse({'status': 'error', 'message': 'Invalid or expired OTP.'})
-
-#     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
-
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
 def logout_view(request):
 	request.session.flush()
@@ -257,7 +248,7 @@ def get_last_message_subquery(user_id):
 def chat_list_view(request):
     current_user = get_logged_in_user(request)
     if not current_user:
-        return redirect('signup')
+        return redirect('login')
 
     # 1. Fetch users except current user
     users = ChatUser.objects.exclude(id=current_user.id).annotate(
