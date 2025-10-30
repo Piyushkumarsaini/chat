@@ -59,16 +59,10 @@
                         <a href="{% url 'chat' chat.user.number %}" 
                             class="chat-item"
                             data-name="{{ chat.user.name|default:chat.user.number }}"
-                            data-type="{{ chat.data_type }}">
+                            data-number="{{ chat.user.number }}">
                             <div class="avatar">{{ chat.initials }}</div>
                             <div class="chat-info">
-                                <span class="chat-name">
-                                    {% if chat.user.name %}
-                                        {{ chat.user.name }}
-                                    {% else %}
-                                        {{ chat.user.number }}
-                                    {% endif %}
-                                </span>
+                                <span class="chat-name">{{ chat.user.name|default:chat.user.number }}</span>
                                 <span class="chat-time">{{ chat.time_display }}</span>
                                 <p class="last-message">
                                     {% if chat.last_message_sender_id == current_user.id %}
