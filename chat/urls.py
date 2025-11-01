@@ -13,9 +13,8 @@ urlpatterns = [
     path('api/verify-otp/', views.login_verify_otp, name='verify_otp'),
     # 
     path('logout/', views.logout_view, name='logout'),
-    path('chat/', views.chat_list_view, name='chat_list'),
-    path('chat/<str:username>/', views.chat_view, name='chat'),
-    # path('chat/<str:username>/messages/', views.load_messages, name='load_messages'),
+    path('chat/', views.chat_view, name='chat_list'),
+    path('api/chat/<str:number>/messages/', views.get_chat_messages, name='get_chat_messages'),
 
     # path('lobby/', views.lobby_view, name='lobby'),
     path('profile/get/', views.get_profile, name='get_profile'),

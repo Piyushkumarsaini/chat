@@ -423,3 +423,57 @@ logoutBtn?.addEventListener('click', () => {
     resetIconHighlights();
 });
 
+// When user clicks a chat from list
+document.querySelectorAll('.chat-item').forEach(item => {
+    item.addEventListener('click', function() {
+    const number = this.dataset.number;
+    const name = this.dataset.name;
+
+    // Change URL without reload
+    window.history.pushState({}, '', `/chat/${number}/`);
+
+    // Load chat dynamically
+    loadChat(number, name);
+    });
+});
+
+function loadChat(number, name) {
+    const chatArea = document.getElementById('chatArea');
+    chatArea.innerHTML = `<div class="chat-header">${name}</div>
+                        <div class="chat-messages" id="chatMessages"><p>Loading...</p></div>`;
+
+    fetch(`/api/chat/${number}/messages/`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+        chatArea.innerHTML = `<p>${data.error}</p>`;
+        return;
+        }
+
+        const msgContainer = document.getElementById('chatMessages');
+        msgContainer.innerHTML = '';
+
+        data.messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.classList.add('message', msg.is_sender ? 'sent' : 'received');
+        div.innerHTML = `${msg.content}<span class="time">${msg.timestamp}</span>`;
+        msgContainer.appendChild(div);
+        });
+
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+    })
+    .catch(err => {
+        console.error(err);
+        chatArea.innerHTML = `<p>Failed to load chat.</p>`;
+    });
+}
+
+// Handle back navigation
+window.addEventListener('popstate', () => {
+    const parts = window.location.pathname.split('/chat/');
+    const number = parts[1]?.replace('/', '');
+    if (number) loadChat(number, number);
+    else document.getElementById('chatArea').innerHTML =
+    '<div class="default-chat-view"><h2>Select a chat to start messaging</h2></div>';
+});
+
