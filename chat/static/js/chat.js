@@ -10,10 +10,9 @@ const otherUserId = Number(messagesContainer.dataset.receiverId); // Chat partne
 const chatSocket = new WebSocket(
     (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
     window.location.host +
-    '/ws/chat/' +
-    roomName +
-    '/'
+    '/ws/chat/global_chat/'
 );
+
 
 // ------------------ Helper Functions ------------------
 
@@ -64,48 +63,32 @@ function createMessageDiv(msgText, isSender, timestampText, status, msgId) {
 
 // Update presence UI for the receiver
 function updatePresenceUI(userId, isOnline, lastSeen) {
-    if (Number(userId) !== otherUserId) return;
+    if (Number(userId) !== window.otherUserId) return;
 
-    const dot = document.getElementById(`presence-dot-${otherUserId}`);
-    const text = document.getElementById(`presence-text-${otherUserId}`);
+    const dot = document.getElementById('presence-dot');
+    const text = document.getElementById('presence-text');
+
     if (!dot || !text) return;
 
     if (isOnline) {
         dot.style.background = '#2ecc71'; // green
         text.textContent = 'Online';
-        return;
+    } else {
+        dot.style.background = '#bdc3c7'; // grey
+
+        if (lastSeen) {
+            const lastSeenDate = new Date(lastSeen);
+            const now = new Date();
+            const diffMs = now - lastSeenDate;
+            const diffMinutes = Math.floor(diffMs / 60000);
+
+            if (diffMinutes < 1) text.textContent = 'Last seen just now';
+            else if (diffMinutes < 60) text.textContent = `Last seen ${diffMinutes} min ago`;
+            else text.textContent = `Last seen at ${lastSeenDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        } else {
+            text.textContent = 'Offline';
+        }
     }
-
-    dot.style.background = '#bdc3c7'; // grey
-    if (!lastSeen) {
-        text.textContent = 'Offline';
-        return;
-    }
-
-    const lastSeenDate = new Date(lastSeen);
-    const now = new Date();
-    const diffMs = now - lastSeenDate;
-    const diffMinutes = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    const formattedTime = lastSeenDate.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-    });
-    const formattedDate = lastSeenDate.toLocaleDateString([], {
-        month: 'short',
-        day: 'numeric',
-    });
-
-    if (diffMinutes < 1) text.textContent = 'Last seen just now';
-    else if (diffMinutes < 60) text.textContent = `Last seen ${diffMinutes} min ago`;
-    else if (diffHours < 24 && now.getDate() === lastSeenDate.getDate())
-        text.textContent = `Last seen today ${formattedTime}`;
-    else if (diffDays === 1)
-        text.textContent = `Last seen yesterday ${formattedTime}`;
-    else text.textContent = `Last seen on ${formattedDate}, ${formattedTime}`;
 }
 
 // Mark messages as read
@@ -124,13 +107,25 @@ function markReadNow() {
 chatSocket.onopen = function () {
     console.log('WebSocket connected');
 
+    setInterval(() => {
+    chatSocket.send(JSON.stringify({
+        action: 'heartbeat',
+        user_id: meId
+    }));
+    }, 20000); // every 20 seconds
+
+    // Identify current user to backend (so presence = online)
+    chatSocket.send(JSON.stringify({
+        action: 'identify_user',
+        user_id: meId
+    }));
+
     // Inform server this user is connected
     chatSocket.send(
         JSON.stringify({
             action: 'receiver_connected',
             receiver_id: meId,
-        })
-    );
+        }));
 
     // Mark messages read
     markReadNow();
@@ -428,45 +423,65 @@ document.querySelectorAll('.chat-item').forEach(item => {
     item.addEventListener('click', function() {
     const number = this.dataset.number;
     const name = this.dataset.name;
+    const userId = this.dataset.userid;
 
+    
+    // Store globally
+    window.otherUserId = Number(userId);
+
+
+    // Update receiver info in the header
+    document.querySelector('.chat-contact-name').textContent = name;
+
+
+    // Reset presence display
+    const dot = document.querySelector('.presence-dot');
+    const text = document.querySelector('.presence-indicator small');
+    if (dot && text) {
+      dot.style.background = '#bdc3c7';
+      text.textContent = 'Checking...';
+    }
+
+    
     // Change URL without reload
     window.history.pushState({}, '', `/chat/${number}/`);
 
     // Load chat dynamically
-    loadChat(number, name);
+    loadChat(number, name, userId);
     });
 });
 
-function loadChat(number, name) {
-    const chatArea = document.getElementById('chatArea');
-    chatArea.innerHTML = `<div class="chat-header">${name}</div>
-                        <div class="chat-messages" id="chatMessages"><p>Loading...</p></div>`;
+function loadChat(number, name, userId) {
+  window.otherUserId = Number(userId); // store globally
+  document.querySelector('.chat-contact-name').textContent = name;
+  document.getElementById('presence-text').textContent = 'Checking...';
+  document.getElementById('presence-dot').style.background = '#bdc3c7';
 
-    fetch(`/api/chat/${number}/messages/`)
+  // Load chat messages
+  fetch(`/api/chat/${number}/messages/`)
     .then(res => res.json())
     .then(data => {
-        if (data.error) {
-        chatArea.innerHTML = `<p>${data.error}</p>`;
-        return;
-        }
-
-        const msgContainer = document.getElementById('chatMessages');
-        msgContainer.innerHTML = '';
-
-        data.messages.forEach(msg => {
+      const msgContainer = document.getElementById('chatMessages');
+      msgContainer.innerHTML = '';
+      data.messages.forEach(msg => {
         const div = document.createElement('div');
         div.classList.add('message', msg.is_sender ? 'sent' : 'received');
         div.innerHTML = `${msg.content}<span class="time">${msg.timestamp}</span>`;
         msgContainer.appendChild(div);
-        });
+      });
+      msgContainer.scrollTop = msgContainer.scrollHeight;
 
-        msgContainer.scrollTop = msgContainer.scrollHeight;
+      // ✅ Ask backend for presence info (after messages load)
+      if (chatSocket && chatSocket.readyState === WebSocket.OPEN && otherUserId) {
+        chatSocket.send(JSON.stringify({
+          action: 'get_presence',
+          target_user_id: otherUserId
+        }));
+      }
     })
-    .catch(err => {
-        console.error(err);
-        chatArea.innerHTML = `<p>Failed to load chat.</p>`;
-    });
+    .catch(err => console.error('Failed to load chat:', err));
 }
+
 
 // Handle back navigation
 window.addEventListener('popstate', () => {

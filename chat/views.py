@@ -320,6 +320,7 @@ def chat_view(request):
     ).order_by('-last_message_time')
 
     chat_list_data = []
+    print(chat_list_data)
     now = timezone.now()
 
     for user in users:
@@ -344,7 +345,7 @@ def chat_view(request):
             preview_text = 'Start a chat'
 
         data_type = 'Unread' if user.unread_count and user.unread_count > 0 else 'All'
-
+        profile_data = get_profile(request)
         chat_list_data.append({
             'user': user,
             'initials': initials,
@@ -357,6 +358,7 @@ def chat_view(request):
     return render(request, 'chat_app/chat.html', {
         'chat_list_data': chat_list_data,
         'current_user': current_user,
+        'profile_data' : profile_data
     })
 
 
@@ -399,6 +401,7 @@ def get_chat_messages(request, number):
 	# receiver=user,
 	# status__in=['sent', 'delivered']
 	# )
+
     
 	# unread_messages.update(status='read')
 
@@ -428,7 +431,6 @@ def get_chat_messages(request, number):
 	# 	'room_name': room_name,
 	# 	'profile_data': profile_data,
 	# })
-
 
 # MESSAGES_PER_PAGE = 20
 

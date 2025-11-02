@@ -58,7 +58,8 @@
                 {% for chat in chat_list_data %}
                     <div class="chat-item"
                         data-number="{{ chat.user.number }}"
-                        data-name="{{ chat.user.name|default:chat.user.number }}">
+                        data-name="{{ chat.user.name|default:chat.user.number }}"
+                        data-userid="{{ chat.user.id }}">
                     <div class="avatar">{{ chat.initials }}</div>
                     <div class="chat-info">
                         <span class="chat-name">{{ chat.user.name|default:chat.user.number }}</span>
@@ -90,15 +91,15 @@
                         <div class="chat-avatar-large"></div>
                         <div class="chat-name-status">
                             <span class="chat-contact-name">
-                                {% if receiver.name %}
-                                    {{ receiver.name }}
-                                {% else %}
-                                    {{ receiver.number }}
-                                {% endif %}
+                            {% if receiver.name %}
+                                {{ receiver.name }}
+                            {% else %}
+                                {{ receiver.number }}
+                            {% endif %}
                             </span>
-                            <div id="presence-{{ receiver.id }}" class="presence-indicator">
-                                <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
-                                <small id="presence-text-{{ receiver.id }}">Checking...</small>
+                            <div id="presence-container" class="presence-indicator">
+                                <span id="presence-dot" class="presence-dot"></span>
+                                <small id="presence-text">Checking...</small>
                             </div>
                         </div>
                     </div>
