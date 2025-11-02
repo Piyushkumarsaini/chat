@@ -10,12 +10,9 @@
     --whatsapp-search-bg: white;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 /* Header */
-=======
-/* ---------- Header ---------- */
->>>>>>> test
+
 .chat-header {
     background: #075e54;
     color: #fff;
@@ -23,7 +20,7 @@
     font-size: 1.2em;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
-=======
+}
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
@@ -135,7 +132,6 @@ body {
 }
 
 .sidebar-header {
->>>>>>> user
     display: flex;
     align-items: center;
     padding: 10px 15px;
@@ -482,11 +478,7 @@ body {
     color: #111;
 }
 
-<<<<<<< HEAD
-.presence {
-=======
 .presence-indicator {
->>>>>>> test
     display: flex;
     align-items: center;
     margin-top: 2px;
@@ -500,25 +492,21 @@ body {
     margin-right: 5px;
 }
 
-<<<<<<< HEAD
 .presence small {
     color: #e0f2f1;
 }
 
 /* Messages */
-=======
 .presence-indicator small {
     font-size: 12px;
     color: #666;
 }
 
-<<<<<<< HEAD
+
 /* ---------- Messages ---------- */
->>>>>>> test
 .chat-messages {
     flex: 1;
-    padding: 16px;
-=======
+}
 .chat-header-icons i {
     font-size: 1.2rem;
     color: var(--whatsapp-medium-grey-text);
@@ -529,7 +517,6 @@ body {
 .message-area {
     flex-grow: 1;
     padding: 20px;
->>>>>>> user
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -566,20 +553,18 @@ body {
     box-shadow: 0 1px 1px rgba(0,0,0,0.05);
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 .msg-time {
     color: #888;
     font-size: 0.8em;
-=======
+}
 .message small {
     color: #888;
->>>>>>> test
-=======
+}
 .encryption-message i {
     margin-right: 10px;
     color: var(--whatsapp-medium-grey-text);
->>>>>>> user
+
 }
 
 .message-bubble {
@@ -998,26 +983,21 @@ body {
     margin-left: 5px;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 .ticks .read {
-=======
+
 .read-ticks {
->>>>>>> test
     color: #4fc3f7;
-=======
+
 #userProfileModal .user-status {
     font-size: 0.9rem;
     color: var(--whatsapp-medium-grey-text);
     margin-right: 10px;
->>>>>>> user
+
 }
 
 #userProfileModal .status-edit-icon {
     margin-left: 5px;
 }
-<<<<<<< HEAD
-=======
 
 #userProfileModal .info-item {
     display: flex;
@@ -1044,10 +1024,7 @@ body {
     cursor: pointer;
     transition: background-color 0.2s;
 }
-<<<<<<< HEAD
->>>>>>> test
-=======
-
+f
 #userProfileModal .logout-btn:hover {
     background-color: #b71c1c; /* Darker red on hover */
 }
@@ -1562,4 +1539,3 @@ body {
 .attachment-option:hover {
     background-color: var(--whatsapp-active-chat-bg);
 }
->>>>>>> user
