@@ -1,10 +1,12 @@
-// ======================= chat.js =======================
+// ======= chat.js (updated) =======
 
 // Grab chat-related elements
 const messagesContainer = document.getElementById('chat-messages');
-const roomName = messagesContainer.dataset.roomName;
-const meId = Number(messagesContainer.dataset.meId);              // Logged-in user
-const otherUserId = Number(messagesContainer.dataset.receiverId); // Chat partner
+const roomName = messagesContainer?.dataset.roomName || '';
+const meId = Number(messagesContainer?.dataset.meId || 0);              // Logged-in user
+
+// Make otherUserId mutable and initialise from dataset if present
+let otherUserId = Number(messagesContainer?.dataset.receiverId || 0); // Chat partner (may change)
 
 // Create WebSocket connection
 const chatSocket = new WebSocket(
@@ -12,9 +14,6 @@ const chatSocket = new WebSocket(
     window.location.host +
     '/ws/chat/global_chat/'
 );
-
-
-// ------------------ Helper Functions ------------------
 
 // Update ticks for a message by msgId
 function updateTicksForMsg(msgId, newStatus) {
@@ -30,10 +29,9 @@ function updateTicksForMsg(msgId, newStatus) {
         ticksSpan.innerHTML = "<span class='read-ticks'>✓✓</span>";
 }
 
-// ✅ Create message div element (incoming or outgoing)
+// Create message div element (incoming or outgoing)
 function createMessageDiv(msgText, isSender, timestampText, status, msgId) {
     const msgDiv = document.createElement('div');
-    // FIXED: Use 'message-bubble' instead of 'message'
     msgDiv.classList.add('message-bubble', isSender ? 'sent' : 'received');
     if (msgId) msgDiv.setAttribute('data-msg-id', msgId);
 
@@ -53,7 +51,6 @@ function createMessageDiv(msgText, isSender, timestampText, status, msgId) {
         </span>
     `;
 
-    // Optional: add a small fade-in animation
     msgDiv.style.opacity = 0;
     msgDiv.style.transition = "opacity 0.2s ease-in-out";
     requestAnimationFrame(() => (msgDiv.style.opacity = 1));
@@ -63,11 +60,11 @@ function createMessageDiv(msgText, isSender, timestampText, status, msgId) {
 
 // Update presence UI for the receiver
 function updatePresenceUI(userId, isOnline, lastSeen) {
-    if (Number(userId) !== window.otherUserId) return;
+    // only update if this presence is for currently-open chat partner
+    if (Number(userId) !== Number(otherUserId)) return;
 
     const dot = document.getElementById('presence-dot');
     const text = document.getElementById('presence-text');
-
     if (!dot || !text) return;
 
     if (isOnline) {
@@ -93,13 +90,13 @@ function updatePresenceUI(userId, isOnline, lastSeen) {
 
 // Mark messages as read
 function markReadNow() {
-    chatSocket.send(
-        JSON.stringify({
+    if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+        chatSocket.send(JSON.stringify({
             action: 'mark_read',
             reader_id: meId,
             other_user_id: otherUserId,
-        })
-    );
+        }));
+    }
 }
 
 // ------------------ WebSocket Handlers ------------------
@@ -107,11 +104,14 @@ function markReadNow() {
 chatSocket.onopen = function () {
     console.log('WebSocket connected');
 
+    // Heartbeat
     setInterval(() => {
-    chatSocket.send(JSON.stringify({
-        action: 'heartbeat',
-        user_id: meId
-    }));
+        if (chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({
+                action: 'heartbeat',
+                user_id: meId
+            }));
+        }
     }, 20000); // every 20 seconds
 
     // Identify current user to backend (so presence = online)
@@ -120,14 +120,13 @@ chatSocket.onopen = function () {
         user_id: meId
     }));
 
-    // Inform server this user is connected
-    chatSocket.send(
-        JSON.stringify({
-            action: 'receiver_connected',
-            receiver_id: meId,
-        }));
+    // Inform server this client is connected (so pending -> delivered)
+    chatSocket.send(JSON.stringify({
+        action: 'receiver_connected',
+        receiver_id: meId,
+    }));
 
-    // Mark messages read
+    // Mark messages read for open chat
     markReadNow();
 };
 
@@ -143,24 +142,23 @@ chatSocket.onmessage = function (e) {
         const status = data.status;
         const msgId = data.msg_id;
         const ts = data.timestamp
-            ? new Date(data.timestamp).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-              })
+            ? new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : 'Just now';
 
-        const msgDiv = createMessageDiv(message, isSender, ts, status, msgId);
-        messagesContainer.appendChild(msgDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        // Only append if message belongs to current open chat (either sent or received)
+        // i.e., message between me and otherUserId
+        if ((isSender && receiver_id === otherUserId) || (!isSender && sender_id === otherUserId)) {
+            const msgDiv = createMessageDiv(message, isSender, ts, status, msgId);
+            messagesContainer.appendChild(msgDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
 
-        // If this client is the receiver, mark delivered
+        // If this client is the receiver (someone sent message to me), notify server to mark delivered
         if (!isSender && receiver_id === meId) {
-            chatSocket.send(
-                JSON.stringify({
-                    action: 'receiver_connected',
-                    receiver_id: meId,
-                })
-            );
+            chatSocket.send(JSON.stringify({
+                action: 'receiver_connected',
+                receiver_id: meId,
+            }));
         }
     } else if (eventType === 'status_update') {
         const ids = data.msg_ids || [];
@@ -183,14 +181,18 @@ document.getElementById('chat-form').onsubmit = function (e) {
     const message = inputField.value.trim();
     if (message === '') return;
 
-    chatSocket.send(
-        JSON.stringify({
-            action: 'send_message',
-            message: message,
-            sender_id: meId,
-            receiver_id: otherUserId,
-        })
-    );
+    // Use the current otherUserId variable
+    if (!otherUserId) {
+        alert('Select a chat first.');
+        return;
+    }
+
+    chatSocket.send(JSON.stringify({
+        action: 'send_message',
+        message: message,
+        sender_id: meId,
+        receiver_id: otherUserId,
+    }));
 
     inputField.value = '';
 };
@@ -207,74 +209,107 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('DOMContentLoaded', () => {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    const receiverId = Number(messagesContainer.dataset.receiverId);
-    const isOnline =
-        messagesContainer.dataset.receiverOnline.toLowerCase() === 'true';
+    // initial presence from dataset (if any)
+    const receiverIdFromDataset = Number(messagesContainer.dataset.receiverId || 0);
+    if (receiverIdFromDataset) {
+        otherUserId = receiverIdFromDataset;
+    }
+
+    const isOnline = messagesContainer.dataset.receiverOnline === 'true';
     const lastSeen = messagesContainer.dataset.receiverLastSeen || null;
-
-    updatePresenceUI(receiverId, isOnline, lastSeen);
+    updatePresenceUI(otherUserId, isOnline, lastSeen);
 });
 
+// When user clicks a chat from list
+document.querySelectorAll('.chat-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const number = this.dataset.number;
+        const name = this.dataset.name;
+        const userId = Number(this.dataset.userid);
 
+        // Update mutable variable
+        otherUserId = userId;
 
-// === USER PROFILE MODAL CODE (UPDATED) ===
+        // Update receiver info in the header
+        document.querySelector('.chat-contact-name').textContent = name;
 
-// References
-const userProfileModal = document.getElementById('userProfileModal');
-const closeUserProfileBtn = document.getElementById('closeUserProfile');
-const navBottomAvatar = document.querySelector('.nav-bottom-avatar');
-const navAvatar = document.querySelector('.nav-avatar');
+        // Reset presence display
+        const dot = document.querySelector('.presence-dot');
+        const text = document.querySelector('.presence-indicator small');
+        if (dot && text) {
+            dot.style.background = '#bdc3c7';
+            text.textContent = 'Checking...';
+        }
 
-// Utility functions
-function closeAllModals() {
-    userProfileModal.style.display = 'none';
+        // Change URL without reload
+        window.history.pushState({}, '', `/chat/${number}/`);
+
+        // Load chat dynamically
+        loadChat(number, name, userId);
+    });
+});
+
+function loadChat(number, name, userId) {
+    otherUserId = Number(userId); // store globally
+    document.querySelector('.chat-contact-name').textContent = name;
+    document.getElementById('presence-text').textContent = 'Checking...';
+    document.getElementById('presence-dot').style.background = '#bdc3c7';
+
+    // Load chat messages
+    fetch(`/api/chat/${number}/messages/`)
+        .then(res => res.json())
+        .then(data => {
+            // Use the same container used elsewhere
+            const msgContainer = document.getElementById('chat-messages');
+            msgContainer.innerHTML = '';
+
+            data.messages.forEach(msg => {
+                // reuse createMessageDiv so structure & ticks are consistent
+                const div = createMessageDiv(msg.content, msg.is_sender, msg.timestamp, msg.status || (msg.is_sender ? 'sent' : ''), msg.id);
+                msgContainer.appendChild(div);
+            });
+
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+
+            // Ask backend for presence info (after messages load)
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN && otherUserId) {
+                chatSocket.send(JSON.stringify({
+                    action: 'get_presence',
+                    target_user_id: otherUserId
+                }));
+            }
+
+            // mark as read after loading messages
+            markReadNow();
+        })
+        .catch(err => console.error('Failed to load chat:', err));
 }
 
-function closeAllPopups() {
-    document.querySelectorAll('.emoji-popup, .attachment-popup, .chat-menu-popup')
-        .forEach(popup => popup.style.display = 'none');
-}
-
-function resetIconHighlights() {
-    document.querySelectorAll('.nav-icons i').forEach(icon => icon.classList.remove('active'));
-    document.getElementById('chatsIcon')?.classList.add('active'); // default highlight
-}
-
-// === OPEN PROFILE MODAL ===
-navAvatar?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeAllModals();
-    closeAllPopups();
-    userProfileModal.style.display = 'block';
-    resetIconHighlights();
-});
-
-navBottomAvatar?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeAllModals();
-    closeAllPopups();
-    userProfileModal.style.display = 'block';
-    resetIconHighlights();
-});
-
-// === CLOSE PROFILE MODAL ===
-closeUserProfileBtn?.addEventListener('click', () => {
-    userProfileModal.style.display = 'none';
-    resetIconHighlights();
-});
-
-// === CLICK OUTSIDE TO CLOSE ===
-window.addEventListener('click', (event) => {
-    if (event.target === userProfileModal) {
-        userProfileModal.style.display = 'none';
-        resetIconHighlights();
+// Handle back navigation
+window.addEventListener('popstate', () => {
+    const parts = window.location.pathname.split('/chat/');
+    const number = parts[1]?.replace('/', '');
+    if (number) loadChat(number, number);
+    else {
+        document.getElementById('chatArea').innerHTML =
+            '<div class="default-chat-view"><h2>Select a chat to start messaging</h2></div>';
     }
 });
 
-// === EDIT PROFILE ICONS (NEW FUNCTIONALITY) ===
-const editProfileImage = document.getElementById('editProfileImage');
+
+// ========================== PROFILE MODAL LOGIC ==========================
+
+// Avatar in navbar
+const userProfileBtn = document.getElementById('userProfileBtn');
+
+// Modal and its elements
+const userProfileModal = document.getElementById('userProfileModal');
+const closeUserProfile = document.getElementById('closeUserProfile');
+
+// Inside modal
 const editProfileName = document.getElementById('editProfileName');
 const editProfileStatus = document.getElementById('editProfileStatus');
+const editProfileImage = document.getElementById('editProfileImage');
 const nameInput = document.getElementById('nameInput');
 const statusInput = document.getElementById('statusInput');
 const imageInput = document.getElementById('imageInput');
@@ -282,103 +317,167 @@ const profileName = document.getElementById('profileName');
 const profileStatus = document.getElementById('profileStatus');
 const profileImage = document.getElementById('profileImage');
 
-// --- Edit Name ---
-editProfileName?.addEventListener('click', () => {
-    profileName.style.display = 'none';
-    nameInput.style.display = 'inline-block';
-    nameInput.focus();
+// -------------------- Modal Open/Close --------------------
+if (userProfileBtn && userProfileModal && closeUserProfile) {
+    userProfileBtn.addEventListener('click', () => {
+        userProfileModal.style.display = 'block';
+    });
 
-    const saveName = () => {
-        updateProfile({ name: nameInput.value });
-        nameInput.removeEventListener('blur', saveName);
-        nameInput.removeEventListener('keydown', handleEnter);
-    };
+    closeUserProfile.addEventListener('click', () => {
+        saveProfileData(); // 🟢 auto-save before closing
+        userProfileModal.style.display = 'none';
+    });
 
-    const handleEnter = (e) => {
-        if (e.key === 'Enter') nameInput.blur();
-    };
-
-    nameInput.addEventListener('blur', saveName);
-    nameInput.addEventListener('keydown', handleEnter);
-});
-
-// --- Edit Status ---
-editProfileStatus?.addEventListener('click', () => {
-    profileStatus.style.display = 'none';
-    statusInput.style.display = 'inline-block';
-    statusInput.focus();
-
-    const saveStatus = () => {
-        updateProfile({ status: statusInput.value });
-        statusInput.removeEventListener('blur', saveStatus);
-        statusInput.removeEventListener('keydown', handleEnter);
-    };
-
-    const handleEnter = (e) => {
-        if (e.key === 'Enter') statusInput.blur();
-    };
-
-    statusInput.addEventListener('blur', saveStatus);
-    statusInput.addEventListener('keydown', handleEnter);
-});
-
-// --- Edit Image ---
-editProfileImage?.addEventListener('click', () => imageInput.click());
-imageInput?.addEventListener('change', () => {
-    const file = imageInput.files[0];
-    if (file) {
-        const formData = new FormData();
-        formData.append('image', file);
-        sendUpdate(formData);
-    }
-});
-
-// --- Send update to Django backend ---
-function updateProfile(data) {
-    const formData = new FormData();
-    for (const key in data) formData.append(key, data[key]);
-    sendUpdate(formData);
+    window.addEventListener('click', (e) => {
+        if (e.target === userProfileModal) {
+            saveProfileData(); // 🟢 auto-save when clicking outside
+            userProfileModal.style.display = 'none';
+        }
+    });
 }
 
-function sendUpdate(formData) {
-    fetch("/update_profile/", {
-        method: "POST",
+// -------------------- Edit Name --------------------
+// -------------------- Edit Name --------------------
+if (editProfileName) {
+    editProfileName.addEventListener('click', () => {
+        profileName.style.display = 'none';
+        nameInput.style.display = 'inline-block';
+        nameInput.focus();
+    });
+
+    // When clicking outside or tabbing out
+    nameInput.addEventListener('blur', () => {
+        saveNameIfChanged();
+    });
+
+    // 🟢 NEW: Save when pressing Enter
+    nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveNameIfChanged();
+            nameInput.blur(); // close edit mode
+        }
+    });
+
+    function saveNameIfChanged() {
+        profileName.style.display = 'block';
+        nameInput.style.display = 'none';
+
+        const newName = nameInput.value.trim();
+        const oldName = profileName.textContent.trim();
+
+        if (newName && newName !== oldName) {
+            updateProfileField('name', newName);
+        } else {
+            nameInput.value = oldName; // restore if empty
+        }
+    }
+}
+
+
+// -------------------- Edit Status --------------------
+// -------------------- Edit Status --------------------
+if (editProfileStatus) {
+    editProfileStatus.addEventListener('click', () => {
+        profileStatus.style.display = 'none';
+        statusInput.style.display = 'inline-block';
+        statusInput.focus();
+    });
+
+    statusInput.addEventListener('blur', () => {
+        saveStatusIfChanged();
+    });
+
+    // 🟢 NEW: Save when pressing Enter
+    statusInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveStatusIfChanged();
+            statusInput.blur();
+        }
+    });
+
+    function saveStatusIfChanged() {
+        profileStatus.style.display = 'block';
+        statusInput.style.display = 'none';
+
+        const newStatus = statusInput.value.trim();
+        const oldStatus = profileStatus.textContent.trim();
+
+        if (newStatus && newStatus !== oldStatus) {
+            updateProfileField('status', newStatus);
+        } else {
+            statusInput.value = oldStatus; // restore old value
+        }
+    }
+}
+
+// -------------------- Edit Image --------------------
+if (editProfileImage && imageInput) {
+    editProfileImage.addEventListener('click', () => {
+        imageInput.click();
+    });
+
+    imageInput.addEventListener('change', () => {
+        const file = imageInput.files[0];
+        if (file) updateProfileField('image', file);
+    });
+}
+
+// -------------------- Update Profile (AJAX) --------------------
+function updateProfileField(field, value) {
+    const formData = new FormData();
+    formData.append(field, value);
+
+    // include CSRF token
+    const csrfToken = getCookie('csrftoken');
+    if (csrfToken) formData.append('csrfmiddlewaretoken', csrfToken);
+
+    fetch('/update_profile/', {
+        method: 'POST',
         body: formData,
-        headers: { "X-CSRFToken": getCookie("csrftoken") },
     })
         .then((res) => res.json())
         .then((data) => {
             if (data.success) {
-                if (data.name) {
+                console.log('Profile updated:', data);
+
+                // 🟢 update DOM immediately — no reload
+                if (field === 'name') {
                     profileName.textContent = data.name;
-                    profileName.style.display = "block";
-                    nameInput.style.display = "none";
+                    nameInput.value = data.name;
+
+                    // Update navbar name (if exists)
+                    const navbarName = document.querySelector('.navbar-user-name');
+                    if (navbarName) navbarName.textContent = data.name;
                 }
-                if (data.status) {
+
+                if (field === 'status') {
                     profileStatus.textContent = data.status;
-                    profileStatus.style.display = "block";
-                    statusInput.style.display = "none";
+                    statusInput.value = data.status;
                 }
-                if (data.image_url) {
+
+                if (field === 'image') {
                     profileImage.src = data.image_url;
+
+                    const navbarAvatar = document.querySelector('.nav-bottom-avatar img');
+                    if (navbarAvatar) navbarAvatar.src = data.image_url;
                 }
             } else {
-                alert("Error updating profile: " + (data.error || "Unknown error"));
+                console.error('Update failed:', data.error);
             }
         })
-        .catch((err) => {
-            console.error("Profile update failed", err);
-        });
+        .catch((err) => console.error('Profile update failed:', err));
 }
 
-// --- Get CSRF token ---
+// -------------------- Helper: CSRF Token --------------------
 function getCookie(name) {
     let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-        const cookies = document.cookie.split(";");
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
         for (let cookie of cookies) {
             cookie = cookie.trim();
-            if (cookie.startsWith(name + "=")) {
+            if (cookie.startsWith(name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
             }
@@ -387,108 +486,17 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// === LOGOUT BUTTON ===
-// === LOGOUT BUTTON ===
-const logoutBtn = document.getElementById('logoutBtn');
-logoutBtn?.addEventListener('click', () => {
-    // Optional: confirmation
-    if (!confirm("Are you sure you want to log out?")) return;
 
-    fetch("/logout/", {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": getCookie("csrftoken"),
-        },
-    })
-        .then((res) => {
-            if (res.redirected) {
-                // Django redirect will send us to login page
-                window.location.href = res.url;
-            } else {
-                // Fallback if redirect didn't happen
-                window.location.href = "/login/";
-            }
-        })
-        .catch((err) => {
-            console.error("Logout failed", err);
-            alert("Logout failed. Please try again.");
-        });
+// -------------------- Auto-Save on Close/Outside --------------------
+function saveProfileData() {
+    const newName = nameInput.value.trim();
+    const newStatus = statusInput.value.trim();
 
-    userProfileModal.style.display = "none";
-    resetIconHighlights();
-});
-
-// When user clicks a chat from list
-document.querySelectorAll('.chat-item').forEach(item => {
-    item.addEventListener('click', function() {
-    const number = this.dataset.number;
-    const name = this.dataset.name;
-    const userId = this.dataset.userid;
-
-    
-    // Store globally
-    window.otherUserId = Number(userId);
-
-
-    // Update receiver info in the header
-    document.querySelector('.chat-contact-name').textContent = name;
-
-
-    // Reset presence display
-    const dot = document.querySelector('.presence-dot');
-    const text = document.querySelector('.presence-indicator small');
-    if (dot && text) {
-      dot.style.background = '#bdc3c7';
-      text.textContent = 'Checking...';
+    // Only send if changed
+    if (newName !== profileName.textContent.trim()) {
+        updateProfileField('name', newName);
     }
-
-    
-    // Change URL without reload
-    window.history.pushState({}, '', `/chat/${number}/`);
-
-    // Load chat dynamically
-    loadChat(number, name, userId);
-    });
-});
-
-function loadChat(number, name, userId) {
-  window.otherUserId = Number(userId); // store globally
-  document.querySelector('.chat-contact-name').textContent = name;
-  document.getElementById('presence-text').textContent = 'Checking...';
-  document.getElementById('presence-dot').style.background = '#bdc3c7';
-
-  // Load chat messages
-  fetch(`/api/chat/${number}/messages/`)
-    .then(res => res.json())
-    .then(data => {
-      const msgContainer = document.getElementById('chatMessages');
-      msgContainer.innerHTML = '';
-      data.messages.forEach(msg => {
-        const div = document.createElement('div');
-        div.classList.add('message', msg.is_sender ? 'sent' : 'received');
-        div.innerHTML = `${msg.content}<span class="time">${msg.timestamp}</span>`;
-        msgContainer.appendChild(div);
-      });
-      msgContainer.scrollTop = msgContainer.scrollHeight;
-
-      // ✅ Ask backend for presence info (after messages load)
-      if (chatSocket && chatSocket.readyState === WebSocket.OPEN && otherUserId) {
-        chatSocket.send(JSON.stringify({
-          action: 'get_presence',
-          target_user_id: otherUserId
-        }));
-      }
-    })
-    .catch(err => console.error('Failed to load chat:', err));
+    if (newStatus !== profileStatus.textContent.trim()) {
+        updateProfileField('status', newStatus);
+    }
 }
-
-
-// Handle back navigation
-window.addEventListener('popstate', () => {
-    const parts = window.location.pathname.split('/chat/');
-    const number = parts[1]?.replace('/', '');
-    if (number) loadChat(number, number);
-    else document.getElementById('chatArea').innerHTML =
-    '<div class="default-chat-view"><h2>Select a chat to start messaging</h2></div>';
-});
-

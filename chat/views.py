@@ -255,13 +255,20 @@ def get_profile(request):
     }
     return profile_data
 
-
+@csrf_exempt
 def update_profile(request):
     user = get_logged_in_user(request)
     if request.method == 'POST':
-        name = request.POST.get('name')
-        status = request.POST.get('status')
-        image = request.FILES.get('image')
+        # Try to handle both JSON and FormData
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            name = data.get('name')
+            status = data.get('status')
+            image = None
+        else:
+            name = request.POST.get('name')
+            status = request.POST.get('status')
+            image = request.FILES.get('image')
 
         if name:
             user.name = name
@@ -271,7 +278,8 @@ def update_profile(request):
             user.image = image
 
         user.save()
-
+        user.refresh_from_db() 
+        
         return JsonResponse({
             'success': True,
             'name': user.name,
@@ -282,13 +290,13 @@ def update_profile(request):
     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
 
-def chat_view(request):
-    """Unified chat page — shows chat list and empty right panel."""
+def chat_view(request, number=None):
+    """Unified chat page — shows chat list and optionally opens a conversation if number provided."""
     current_user = get_logged_in_user(request)
     if not current_user:
         return redirect('login')
 
-    # === chat_list_view logic ===
+    # === chat_list_view logic === (unchanged) ===
     users = ChatUser.objects.exclude(id=current_user.id).annotate(
         last_message_id=Subquery(
             ChatMessage.objects.filter(
@@ -320,7 +328,6 @@ def chat_view(request):
     ).order_by('-last_message_time')
 
     chat_list_data = []
-    print(chat_list_data)
     now = timezone.now()
 
     for user in users:
@@ -345,6 +352,7 @@ def chat_view(request):
             preview_text = 'Start a chat'
 
         data_type = 'Unread' if user.unread_count and user.unread_count > 0 else 'All'
+        # safe to call get_profile once (not inside loop ideally)
         profile_data = get_profile(request)
         chat_list_data.append({
             'user': user,
@@ -355,11 +363,31 @@ def chat_view(request):
             'unread_count': user.unread_count or 0,
         })
 
+    # If a number is provided, try to load that conversation
+    receiver = None
+    messages = []
+    room_name = "global_chat"  # keep same group name as consumer
+    if number:
+        try:
+            receiver = ChatUser.objects.get(number=number)
+            messages_qs = ChatMessage.objects.filter(
+                Q(sender=current_user, receiver=receiver) |
+                Q(sender=receiver, receiver=current_user)
+            ).order_by('timestamp')
+            messages = list(messages_qs)
+        except ChatUser.DoesNotExist:
+            receiver = None
+            messages = []
+
     return render(request, 'chat_app/chat.html', {
         'chat_list_data': chat_list_data,
         'current_user': current_user,
-        'profile_data' : profile_data
+        'profile_data': profile_data,
+        'receiver': receiver,
+        'messages': messages,
+        'room_name': room_name,
     })
+
 
 
 def get_chat_messages(request, number):
@@ -384,6 +412,7 @@ def get_chat_messages(request, number):
             'content': msg.content,
             'is_sender': msg.sender_id == current_user.id,
             'timestamp': msg.timestamp.strftime('%H:%M'),
+            'status': msg.status,
         }
         for msg in messages
     ]
