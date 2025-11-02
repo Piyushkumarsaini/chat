@@ -46,14 +46,6 @@
                     <button class="tab" data-filter="favorites">Favorites</button>
                     <button class="tab" data-filter="groups">Groups</button>
                 </div>
-                <div class="sync-banner">
-                    <i class="fas fa-sync-alt"></i>
-                    <div class="sync-text">
-                        <p><strong>Turn on background sync</strong></p>
-                        <p>Get faster performance by syncing messages in the background</p>
-                    </div>
-                    <i class="fas fa-times close-banner-icon"></i>
-                </div>
                 <div class="chat-list" id="chatList">
                 {% for chat in chat_list_data %}
                     <div class="chat-item"
@@ -82,9 +74,6 @@
             </div>
         </div>
         <div class="chat-main-content">
-            <div class="default-chat-view">
-                <h2>Select a chat to start messaging</h2>
-            </div>
             <div class="chat-header">
                 <div class="chat-header-default">
                     <div class="chat-profile-info" id="userAvatar">
@@ -214,18 +203,70 @@
         </div>
     </div>
 
-    <div id="userInfoModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close" id="closeUserInfo">&times;</span>
-            <div class="sidebar" id="navSidebar">
-                <div class="nav-item active" data-section="overview">Overview</div>
-                <div class="nav-item" data-section="media">Media</div>
-                <div class="nav-item" data-section="file-links">File Links</div>
-                <div class="nav-item" data-section="events">Events</div>
+    <!-- User Info Modal -->
+    <!-- 🟢 USER INFO MODAL -->
+    <div id="userInfoModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeUserInfo">&times;</span>
+
+        <!-- LEFT SIDE: Sidebar -->
+        <div class="sidebar" id="navSidebar">
+        <div class="nav-item active" data-section="overview">Overview</div>
+        <div class="nav-item" data-section="media">Media</div>
+        <div class="nav-item" data-section="file-links">File Links</div>
+        <div class="nav-item" data-section="events">Events</div>
+        </div>
+
+        <!-- RIGHT SIDE: Content -->
+        <div class="content" id="contentArea">
+        <!-- Default Section -->
+        <div id="overviewSection" class="section active">
+            <div class="header">
+                <div class="avatar-large" id="userModalAvatar"></div>
+                <div class="user-name" id="userModalName">{{profile_data.name}}</div>
+                <div class="user-status" id="userModalStatus">Hey there! I’m using this app.</div>
             </div>
-            <div class="content" id="contentArea"></div>
+
+            <div class="info-item">
+                <span>Phone</span><span id="userModalPhone">+91 98765 43210</span>
+            </div>
+            <div class="info-item">
+                <span>About</span><span id="userModalAbout">Loves coding and coffee ☕</span>
+            </div>
+        </div>
+
+        <!-- Media Section -->
+        <div id="mediaSection" class="section" style="display: none;">
+            <div class="media-grid" id="userMediaGrid">
+                <div class="media-item"></div>
+                <div class="media-item"></div>
+                <div class="media-item"></div>
+            </div>
+        </div>
+
+        <!-- Files Section -->
+        <div id="file-linksSection" class="section" style="display: none;">
+            <div class="file-links">
+            <ul>
+                <li>ProjectPlan.pdf</li>
+                <li>DesignMockup.png</li>
+            </ul>
+            </div>
+        </div>
+
+        <!-- Events Section -->
+        <div id="eventsSection" class="section" style="display: none;">
+            <div class="events">
+            <ul>
+                <li>Joined on: Jan 12, 2024</li>
+                <li>Last seen: 2 minutes ago</li>
+            </ul>
+            </div>
+        </div>
         </div>
     </div>
+    </div>
+
 
     <!-- The modal -->
     <div id="userProfileModal" class="modal" style="display: none;">

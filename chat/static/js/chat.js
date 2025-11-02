@@ -500,3 +500,88 @@ function saveProfileData() {
         updateProfileField('status', newStatus);
     }
 }
+
+// ===================== USER INFO POPUP LOGIC =====================
+
+// Elements
+const userInfoModal = document.getElementById('userInfoModal');
+const closeUserInfo = document.getElementById('closeUserInfo');
+const contentArea = document.getElementById('contentArea');
+const navItems = document.querySelectorAll('#navSidebar .nav-item');
+
+// Profile triggers (username & avatar)
+const chatAvatar = document.querySelector('.chat-avatar-large');
+const chatName = document.querySelector('.chat-contact-name');
+
+// Function to open modal
+function openUserInfoModal(userData) {
+    userInfoModal.style.display = 'flex';
+
+    // 🟢 Fill user data dynamically
+    document.getElementById('userModalName').textContent = userData.name;
+    document.getElementById('userModalStatus').textContent = userData.status;
+    document.getElementById('userModalPhone').textContent = userData.phone;
+    document.getElementById('userModalAbout').textContent = userData.about;
+    const avatar = document.getElementById('userModalAvatar');
+    avatar.style.backgroundImage = `url('${userData.image}')`;
+    avatar.style.backgroundSize = 'cover';
+    avatar.style.backgroundPosition = 'center';
+}
+
+// Event listeners to open modal
+if (chatAvatar) {
+    chatAvatar.addEventListener('click', () => {
+        openUserInfoModal({
+            name: 'John Doe',
+            status: 'Available 🌟',
+            phone: '+91 98765 43210',
+            about: 'Building cool apps 👨‍💻',
+            image: '/static/images/sample_avatar.jpg',
+        });
+    });
+}
+
+if (chatName) {
+    chatName.addEventListener('click', () => {
+        openUserInfoModal({
+            name: 'John Doe',
+            status: 'Available 🌟',
+            phone: '+91 98765 43210',
+            about: 'Building cool apps 👨‍💻',
+            image: '/static/images/sample_avatar.jpg',
+        });
+    });
+}
+
+// Close modal
+if (closeUserInfo) {
+    closeUserInfo.addEventListener('click', () => {
+        userInfoModal.style.display = 'none';
+    });
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', (e) => {
+    if (e.target === userInfoModal) {
+        userInfoModal.style.display = 'none';
+    }
+});
+
+// Sidebar tab switching
+navItems.forEach((item) => {
+    item.addEventListener('click', () => {
+        // Remove active state from all
+        navItems.forEach((i) => i.classList.remove('active'));
+        item.classList.add('active');
+
+        // Hide all sections
+        document.querySelectorAll('.section').forEach((sec) => {
+            sec.style.display = 'none';
+        });
+
+        // Show selected
+        const sectionId = item.dataset.section + 'Section';
+        document.getElementById(sectionId).style.display = 'block';
+    });
+});
+
