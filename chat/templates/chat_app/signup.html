@@ -1,26 +1,346 @@
-{% extends 'chat_app/base.html' %}
-{% block title %}Sign up{% endblock %}
-{% block content %}
-<h2>Sign up</h2>
-<form method="post">
-    {% csrf_token %}
-    <p>
-        <label for="id_name">Name:</label><br>
-        {{ form.name }}
-        {% if form.name.errors %}<br><span style="color:red">{{ form.name.errors.0 }}</span>{% endif %}
-    </p>
-    <p>
-        <label for="id_number">Number:</label><br>
-        {{ form.number }}
-        {% if form.number.errors %}<br><span style="color:red">{{ form.number.errors.0 }}</span>{% endif %}
-    </p>
-    <p>
-        <label for="id_password">Password:</label><br>
-        {{ form.password }}
-        {% if form.password.errors %}<br><span style="color:red">{{ form.password.errors.0 }}</span>{% endif %}
-    </p>
-    <button type="submit">Sign up</button>
-    
-</form>
-<p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Signup - In Chat</title>
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background-color: #e5ddd5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .container {
+    background-color: #fff;
+    width: 380px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    overflow: hidden;
+    padding: 25px;
+    text-align: center;
+    animation: fadeIn 0.8s ease;
+    border-top: 8px solid #25d366;
+    border-bottom: 8px solid #128c7e;
+    position: relative;
+  }
+
+  h2 {
+    color: #128c7e;
+    margin-bottom: 10px;
+    font-size: 1.6em;
+  }
+
+  h3 {
+    color: #075e54;
+    margin-bottom: 20px;
+    font-weight: normal;
+  }
+
+  label {
+    font-size: 0.9em;
+    color: #555;
+    display: block;
+    margin-top: 10px;
+    text-align: left;
+  }
+
+  select, input[type="tel"], input[type="text"], input[type="file"], input[type="number"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+    outline: none;
+    margin-top: 5px;
+  }
+
+  select:focus, input:focus {
+    border-color: #25d366;
+    box-shadow: 0 0 0 2px rgba(37,211,102,0.2);
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background-color: #25d366;
+    color: white;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 20px;
+  }
+
+  button:hover {
+    background-color: #128c7e;
+  }
+
+  .message {
+    text-align: center;
+    font-size: 0.9em;
+    margin: 10px 0;
+  }
+
+  .error { color: #d93025; }
+  .success { color: #25d366; }
+
+  img.preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-top: 15px;
+  }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .login-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background-color: #128c7e;
+    font-size: 0.9em;
+    width: auto;
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+
+  .family-banner {
+    background-color: #25d366;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 1em;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+   <h2>Welcome to In Chat</h2>
+   <h3>Connect with your friends and family instantly</h3>
+
+    <!-- STEP 1: Phone Input -->
+    <div id="step1" class="step active">
+      <label for="countryCode">Country Code</label>
+      <select id="countryCode" name="country_code">
+        <option value="+91" selected>🇮🇳 +91 (India)</option>
+        <option value="+1">🇺🇸 +1 (USA)</option>
+        <option value="+44">🇬🇧 +44 (UK)</option>
+        <option value="+61">🇦🇺 +61 (Australia)</option>
+        <option value="+81">🇯🇵 +81 (Japan)</option>
+      </select>
+
+      <label for="phone">Enter Phone Number</label>
+      <input type="tel" id="phone" placeholder="Enter number" maxlength="10" required />
+
+      <div id="phoneError" class="message"></div>
+      <button id="nextToOtp">Next</button>
+      <p style="margin-top:15px; font-size:0.85em;">Already part of the family? <a href="/login/" style="color:#128c7e; text-decoration:none;">Login here</a></p>
+    </div>
+
+    <!-- STEP 2: OTP Verification -->
+    <div id="step2" class="step">
+      <h3>Verify OTP</h3>
+      <label for="otp">Enter the 6-digit code sent to your phone</label>
+      <input type="number" id="otp" placeholder="Enter OTP" maxlength="6" />
+      <div id="otpError" class="message error"></div>
+      <button id="verifyOtp">Verify</button>
+      <button id="resendOtp" style="margin-top:10px; background-color:#128c7e;">Resend OTP</button>
+      <div id="resendMessage" class="message"></div>
+    </div>
+
+    <!-- STEP 3: Profile Setup -->
+    <div id="step3" class="step">
+      <h3>Profile Setup</h3>
+      <label for="name">Full Name</label>
+      <input type="text" id="name" placeholder="Enter your name" required />
+
+      <label for="image">Profile Picture</label>
+      <input type="file" id="image" accept="image/*" />
+      <img id="preview" class="preview" src="https://via.placeholder.com/120" alt="Preview" />
+
+      <button id="finishSignup">Finish Signup</button>
+    </div>
+  </div>
+
+  <!-- Footer button always visible -->
+  <button id="footerButton" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:200px; background-color:#ff9933;">Need Help?</button>
+
+  <!-- CSRF Token Handling -->
+  <script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+  </script>
+
+  <script>
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+
+    const phone = document.getElementById('phone');
+    const phoneError = document.getElementById('phoneError');
+    const otpError = document.getElementById('otpError');
+    const otpInput = document.getElementById('otp');
+    const countryCode = document.getElementById('countryCode');
+    const resendBtn = document.getElementById('resendOtp');
+    const resendMsg = document.getElementById('resendMessage');
+
+    const nextBtn = document.getElementById('nextToOtp');
+    const verifyBtn = document.getElementById('verifyOtp');
+    const finishBtn = document.getElementById('finishSignup');
+    const imageInput = document.getElementById('image');
+    const preview = document.getElementById('preview');
+    const footerBtn = document.getElementById('footerButton');
+    const loginBtn = document.getElementById('loginBtn');
+
+    let currentPhone = "";
+
+    // Step 1: Check phone and send OTP
+    nextBtn.addEventListener('click', () => {
+      currentPhone = phone.value.trim();
+      if (!/^\d{10}$/.test(currentPhone)) {
+        phoneError.textContent = "Please enter a valid 10-digit phone number.";
+        phoneError.className = 'message error';
+        return;
+      }
+      phoneError.textContent = "Checking...";
+      fetch(`/check-phone/?number=${currentPhone}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.exists) {
+            phoneError.textContent = "This number is already registered.";
+            phoneError.className = 'message error';
+          } else {
+            sendOTP();
+          }
+        });
+    });
+
+    function sendOTP() {
+      fetch(`/send-otp/?country_code=${countryCode.value}&number=${currentPhone}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            phoneError.textContent = "OTP sent successfully!";
+            step1.classList.remove('active');
+            step2.classList.add('active');
+          } else {
+            phoneError.textContent = data.error;
+          }
+        });
+    }
+
+    // Resend OTP
+    resendBtn.addEventListener('click', () => {
+      resendMsg.textContent = "Resending OTP...";
+      fetch(`/send-otp/?country_code=${countryCode.value}&number=${currentPhone}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            resendMsg.textContent = "OTP resent successfully!";
+            resendMsg.className = "message success";
+          } else {
+            resendMsg.textContent = data.error;
+            resendMsg.className = "message error";
+          }
+        });
+    });
+
+    // Step 2: Verify OTP
+    verifyBtn.addEventListener('click', () => {
+      const otp = otpInput.value.trim();
+      otpError.textContent = "Verifying...";
+      fetch(`/verify-otp/?number=${currentPhone}&otp=${otp}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            otpError.textContent = "OTP verified!";
+            otpError.className = 'message success';
+            step2.classList.remove('active');
+            step3.classList.add('active');
+          } else {
+            otpError.textContent = data.error;
+            otpError.className = 'message error';
+          }
+        });
+    });
+
+    // Step 3: Image preview
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0];
+      if (file) preview.src = URL.createObjectURL(file);
+    });
+
+    // Step 3: Finish signup
+    finishBtn.addEventListener('click', () => {
+      const name = document.getElementById('name').value.trim();
+      if (!name) {
+        alert("Please enter your name.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('number', currentPhone);
+      formData.append('country_code', countryCode.value);
+      formData.append('image', imageInput.files[0]);
+
+      fetch('/complete-signup/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken },
+        body: formData,
+        credentials: 'include'
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert("Signup completed successfully!");
+          window.location.href = `/chat/${encodeURIComponent(data.username)}/`;
+        } else {
+          alert(data.error);
+        }
+      })
+      .catch(err => {
+        console.error("Signup failed:", err);
+        alert("Something went wrong. Check console.");
+      });
+    });
+
+    // Footer button action
+    footerBtn.addEventListener('click', () => {
+      alert("For help, please contact support@example.com or check the FAQ.");
+    });
+
+    // Login button action
+    loginBtn.addEventListener('click', () => {
+      window.location.href = '/login/';
+    });
+  </script>
+</body>
+</html>

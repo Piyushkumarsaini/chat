@@ -1,70 +1,386 @@
-{% extends 'chat_app/base.html' %}
-{% load static %}
-{% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/chat.css' %}">
-{% endblock %}
-{% block title %}Chat with {{ receiver.name }}{% endblock %}
-{% block content %}
-
-<div class="chat-container">
-    <div class="chat-header">
-        <div>
-            Chat with {{ receiver.name }} &lt;{{ receiver.number }}&gt;
-        </div>
-        <!-- Presence indicator -->
-        <div id="presence-{{ receiver.id }}" class="presence-indicator">
-            <span id="presence-dot-{{ receiver.id }}" class="presence-dot"></span>
-            <small id="presence-text-{{ receiver.id }}">Checking...</small>
-        </div>
-    </div>
-
-    <!-- Chat Messages -->
-    <div class="chat-messages"
-        id="chat-messages"
-        data-room-name="{{ room_name }}"
-        data-me-id="{{ current_user.id }}"
-        data-receiver-id="{{ receiver.id }}"
-        data-receiver-online="{{ receiver.is_online|yesno:'true,false' }}"
-        data-receiver-last-seen="{% if receiver.last_seen %}{{ receiver.last_seen|date:'c' }}{% endif %}">
-        {% if messages %}
-            {% regroup messages by timestamp.date as date_groups %}
-            {% with today=now|date:"Y-m-d" %}
-                {% for day in date_groups %}
-                    <div class="date-header sticky-date">
-                        {{ day.grouper|date:"F j, Y" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In Chat</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/chat.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.17.0/index.js" type="module"></script>
+</head>
+<body>
+    <div class="whatsapp-desktop-container">
+        <div class="whatsapp-sidebar-container">
+            <div class="left-nav-bar">
+                <div class="nav-avatar">
+                    <img src="https://via.placeholder.com/38" alt="Profile" class="round-avatar">
+                    <span class="notification-badge">12</span>
+                </div>
+                <div class="nav-icons">
+                    <i class="fas fa-circle nav-status-indicator" id="statusIcon"></i>
+                    <i class="fas fa-comment-dots" id="chatsIcon"></i>
+                    <i class="fas fa-users" id="communitiesIcon"></i>
+                    <i class="fas fa-circle nav-status-indicator" id="callsIcon"></i>
+                    <i class="fas fa-cog" id="settingsIcon"></i>
+                </div>
+                <div class="nav-bottom-avatar" id="userProfileBtn">
+                    <img src="https://via.placeholder.com/38" alt="Profile" class="round-avatar">
+                </div>
+            </div>
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <h1 class="whatsapp-title">In Chat</h1>
+                    <div class="header-icons">
+                        <i class="fas fa-plus action-icon" title="New Chat"></i>
+                        <i class="fas fa-ellipsis-v action-icon" title="Menu"></i>
                     </div>
-
-                    {% for msg in day.list %}
-                        <div class="message {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
-                             data-msg-id="{{ msg.id }}">
-                            <div>{{ msg.content|linebreaksbr }}</div>
-                            <small>
-                                {{ msg.timestamp|time:"H:i" }}
-                                {% if msg.sender.id == current_user.id %}
-                                    <span class="ticks">
-                                    {% if msg.status == 'sent' %}✓
-                                    {% elif msg.status == 'delivered' %}✓✓
-                                    {% elif msg.status == 'read' %}<span class="read-ticks">✓✓</span>
-                                    {% endif %}
-                                    </span>
-                                {% endif %}
-                            </small>
-                        </div>
-                    {% endfor %}
+                </div>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search or start a new chat">
+                </div>
+                <div class="filter-tabs">
+                    <button class="tab active" data-filter="all">All</button>
+                    <button class="tab" data-filter="unread">Unread</button>
+                    <button class="tab" data-filter="favorites">Favorites</button>
+                    <button class="tab" data-filter="groups">Groups</button>
+                </div>
+                <div class="chat-list" id="chatList">
+                {% for chat in chat_list_data %}
+                    <div class="chat-item"
+                        data-number="{{ chat.user.number }}"
+                        data-name="{{ chat.user.name|default:chat.user.number }}"
+                        data-userid="{{ chat.user.id }}">
+                    <div class="avatar">{{ chat.initials }}</div>
+                    <div class="chat-info">
+                        <span class="chat-name">{{ chat.user.name|default:chat.user.number }}</span>
+                        <span class="chat-time">{{ chat.time_display }}</span>
+                        <p class="last-message">
+                        {% if chat.last_message_sender_id == current_user.id %}
+                            <i class="fas fa-check-double grey-tick"></i>
+                        {% endif %}
+                        {{ chat.preview_text|truncatechars:35 }}
+                        </p>
+                    </div>
+                    {% if chat.unread_count > 0 %}
+                        <span class="unread-count">{{ chat.unread_count }}</span>
+                    {% endif %}
+                    </div>
+                {% empty %}
+                    <div class="chat-item">No active chats found.</div>
                 {% endfor %}
-            {% endwith %}
-        {% else %}
-            <div class="no-messages">No messages yet.</div>
-        {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="chat-main-content">
+            <div class="chat-header">
+                <div class="chat-header-default">
+                    <div class="chat-profile-info" id="userAvatar">
+                        <div class="chat-avatar-large"></div>
+                        <div class="chat-name-status">
+                            <span class="chat-contact-name">
+                            {% if receiver.name %}
+                                {{ receiver.name }}
+                            {% else %}
+                                {{ receiver.number }}
+                            {% endif %}
+                            </span>
+                            <div id="presence-container" class="presence-indicator">
+                                <span id="presence-dot" class="presence-dot"></span>
+                                <small id="presence-text">Checking...</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-header-icons">
+                        <i class="fas fa-video" id="videoCallIcon"></i>
+                        <i class="fas fa-phone-alt" id="voiceCallIcon"></i>
+                        <i class="fas fa-search" id="chatSearchIcon"></i>
+                        <i class="fas fa-ellipsis-v" id="chatMenuIcon"></i>
+                    </div>
+                </div>
+                <div class="chat-header-search" style="display: none;">
+                    <i class="fas fa-arrow-left chat-search-back"></i>
+                    <input type="text" id="chatSearchInput" placeholder="Search messages">
+                </div>
+            </div>
+            <div class="message-area"
+                 id="chat-messages"
+                 data-room-name="{{ room_name }}"
+                 data-me-id="{{ current_user.id }}"
+                 data-receiver-id="{{ receiver.id }}"
+                 data-receiver-online="{{ receiver.is_online|yesno:'true,false' }}"
+                 data-receiver-last-seen="{% if receiver.last_seen %}{{ receiver.last_seen|date:'c' }}{% endif %}">
+                {% if messages %}
+                    {% regroup messages by timestamp.date as date_groups %}
+                    {% with today=now|date:"Y-m-d" %}
+                        {% for day in date_groups %}
+                            <div class="message-divider">{{ day.grouper|date:"F j, Y" }}</div>
+                            <div class="encryption-message">
+                                <i class="fas fa-lock"></i>
+                                Messages and calls are end-to-end encrypted. Only people in this chat can read, listen to, or share them. Select to learn more.
+                            </div>
+                            {% for msg in day.list %}
+                                <div class="message-bubble {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}"
+                                     data-msg-id="{{ msg.id }}">
+                                    <p>{{ msg.content|linebreaksbr }}</p>
+                                    <span class="message-time">
+                                        {{ msg.timestamp|time:"H:i" }}
+                                        {% if msg.sender.id == current_user.id %}
+                                            <span class="ticks">
+                                                {% if msg.status == 'sent' %}
+                                                    <i class="fas fa-check"></i>
+                                                {% elif msg.status == 'delivered' %}
+                                                    <i class="fas fa-check-double grey-tick"></i>
+                                                {% elif msg.status == 'read' %}
+                                                    <i class="fas fa-check-double read-ticks"></i>
+                                                {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        {% endfor %}
+                    {% endwith %}
+                {% else %}
+                    <div class="no-messages">No messages yet.</div>
+                {% endif %}
+            </div>
+            <form id="chat-form" method="post" class="chat-input-area">
+                {% csrf_token %}
+                <i class="fas fa-smile"></i>
+                <i class="fas fa-paperclip"></i>
+                <input type="text" id="chat-message-input" name="content" placeholder="Type a message" required>
+                <i class="fas fa-microphone" id="mic-icon"></i>
+                <button id="chat-message-submit" type="submit" class="send-btn" style="display:none;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+            <div id="emojiPopup" class="popup-overlay" style="display: none;">
+                <div class="emoji-popup">
+                    <emoji-picker></emoji-picker>
+                </div>
+            </div>
+            <div id="attachmentPopup" class="popup-overlay" style="display: none;">
+                <div class="attachment-popup">
+                    <div class="attachment-option" data-type="photo">
+                        <i class="fas fa-image"></i> Photos & Videos
+                    </div>
+                    <div class="attachment-option" data-type="document">
+                        <i class="fas fa-file"></i> Document
+                    </div>
+                </div>
+            </div>
+            <div id="chatMenuPopup" class="popup-overlay" style="display: none;">
+                <div class="chat-menu-popup">
+                    <div class="menu-option" data-action="view-contact">View Contact</div>
+                    <div class="menu-option" data-action="media">Media, Links, and Docs</div>
+                    <div class="menu-option" data-action="search">Search</div>
+                    <div class="menu-option" data-action="mute">Mute Notifications</div>
+                    <div class="menu-option" data-action="disappearing">Disappearing Messages</div>
+                    <div class="menu-option" data-action="wallpaper">Wallpaper</div>
+                    <div class="menu-option" data-action="more">More</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Chat Input Form -->
-    <form id="chat-form" method="post" class="chat-input">
-        {% csrf_token %}
-        <textarea id="chat-message-input" name="content" rows="2" placeholder="Type a message..." required></textarea>
-        <button id="chat-message-submit" type="submit">Send</button>
-    </form>
+    <div id="newChatOverlay" class="new-chat-overlay" style="display: none;">
+        <div class="new-chat-popup">
+            <div class="new-chat-header">
+                <h2>New Chat</h2>
+                <i class="fas fa-times close-popup"></i>
+            </div>
+            <div class="new-chat-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="newChatSearch" placeholder="Search name or number">
+            </div>
+            <div class="new-chat-list" id="newChatList"></div>
+            <div class="new-chat-options">
+                <button id="newGroup"><i class="fas fa-users"></i> New Group</button>
+                <button id="newContact"><i class="fas fa-user-plus"></i> New Contact</button>
+            </div>
+        </div>
+    </div>
 
-</div>
-<script src="{% static 'js/chat.js' %}"></script>
-{% endblock %}
+    <!-- User Info Modal -->
+    <!-- 🟢 USER INFO MODAL -->
+    <div id="userInfoModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeUserInfo">&times;</span>
+
+        <!-- LEFT SIDE: Sidebar -->
+        <div class="sidebar" id="navSidebar">
+        <div class="nav-item active" data-section="overview">Overview</div>
+        <div class="nav-item" data-section="media">Media</div>
+        <div class="nav-item" data-section="file-links">File Links</div>
+        <div class="nav-item" data-section="events">Events</div>
+        </div>
+
+        <!-- RIGHT SIDE: Content -->
+        <div class="content" id="contentArea">
+        <!-- Default Section -->
+        <div id="overviewSection" class="section active">
+            <div class="header">
+                <div class="avatar-large" id="userModalAvatar"></div>
+                <div class="user-name" id="userModalName">{{profile_data.name}}</div>
+                <div class="user-status" id="userModalStatus">Hey there! I’m using this app.</div>
+            </div>
+
+            <div class="info-item">
+                <span>Phone</span><span id="userModalPhone">+91 98765 43210</span>
+            </div>
+            <div class="info-item">
+                <span>About</span><span id="userModalAbout">Loves coding and coffee ☕</span>
+            </div>
+        </div>
+
+        <!-- Media Section -->
+        <div id="mediaSection" class="section" style="display: none;">
+            <div class="media-grid" id="userMediaGrid">
+                <div class="media-item"></div>
+                <div class="media-item"></div>
+                <div class="media-item"></div>
+            </div>
+        </div>
+
+        <!-- Files Section -->
+        <div id="file-linksSection" class="section" style="display: none;">
+            <div class="file-links">
+            <ul>
+                <li>ProjectPlan.pdf</li>
+                <li>DesignMockup.png</li>
+            </ul>
+            </div>
+        </div>
+
+        <!-- Events Section -->
+        <div id="eventsSection" class="section" style="display: none;">
+            <div class="events">
+            <ul>
+                <li>Joined on: Jan 12, 2024</li>
+                <li>Last seen: 2 minutes ago</li>
+            </ul>
+            </div>
+        </div>
+        </div>
+    </div>
+    </div>
+
+
+    <!-- The modal -->
+    <div id="userProfileModal" class="modal" style="display: none;">
+        <div class="modal-content user-profile-modal">
+            <span class="close" id="closeUserProfile">&times;</span>
+            <div class="header">
+                <div class="profile-image-container">
+                    <img id="profileImage" src="{{ profile_data.profile_image }}" alt="User Profile" class="avatar-large">
+                    <i class="fas fa-edit edit-icon image-edit-icon" id="editProfileImage"></i>
+                    <input type="file" id="imageInput" style="display:none;" accept="image/*">
+                </div>
+                <div class="profile-name-container">
+                    <div class="user-name" id="profileName">{{ profile_data.name }}</div>
+                    <input type="text" id="nameInput" class="edit-input" style="display:none;" value="{{ profile_data.name }}">
+                    <i class="fas fa-edit edit-icon name-edit-icon" id="editProfileName"></i>
+                </div>
+                <div class="profile-status-container">
+                    <div class="user-status" id="profileStatus">{{ profile_data.status }}</div>
+                    <input type="text" id="statusInput" class="edit-input" style="display:none;" value="{{ profile_data.status }}">
+                    <i class="fas fa-edit edit-icon status-edit-icon" id="editProfileStatus"></i>
+                </div>
+            </div>
+            <div class="info-item">
+                <span>Phone</span>
+                <span id="profilePhone">{{ profile_data.phone }}</span>
+            </div>
+            <button id="logoutBtn" class="logout-btn">Log Out</button>
+        </div>
+    </div>
+
+    
+    <div id="statusModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="closeStatus">&times;</span>
+            <div class="header">
+                <h2>Status</h2>
+            </div>
+            <div class="status-content">
+                <div class="status-option">
+                    <img src="https://via.placeholder.com/50" alt="My Status" class="status-avatar">
+                    <div class="status-info">
+                        <span class="status-title">My Status</span>
+                        <span class="status-subtitle">Tap to add status update</span>
+                    </div>
+                </div>
+                <div class="status-list">
+                    <div class="status-item">
+                        <img src="https://via.placeholder.com/50" alt="Contact Status" class="status-avatar">
+                        <div class="status-info">
+                            <span class="status-title">John Doe</span>
+                            <span class="status-subtitle">Today at 10:30 AM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="communitiesModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="closeCommunities">&times;</span>
+            <div class="header">
+                <h2>Communities</h2>
+            </div>
+            <div class="communities-content">
+                <div class="community-item">
+                    <img src="https://via.placeholder.com/50" alt="Community" class="community-avatar">
+                    <div class="community-info">
+                        <span class="community-title">Developers Community</span>
+                        <span class="community-subtitle">Last active: Today</span>
+                    </div>
+                </div>
+            </div>
+            <button id="newCommunityBtn" class="action-btn">New Community</button>
+        </div>
+    </div>
+
+    <div id="callsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="closeCalls">&times;</span>
+            <div class="header">
+                <h2>Calls</h2>
+            </div>
+            <div class="calls-content">
+                <div class="call-item">
+                    <img src="https://via.placeholder.com/50" alt="Call" class="call-avatar">
+                    <div class="call-info">
+                        <span class="call-title">John Doe</span>
+                        <span class="call-subtitle">Outgoing - Yesterday, 2:15 PM</span>
+                    </div>
+                    <i class="fas fa-phone-alt call-icon"></i>
+                </div>
+            </div>
+            <button id="newCallBtn" class="action-btn">New Call</button>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="closeSettings">&times;</span>
+            <div class="header">
+                <h2>Settings</h2>
+            </div>
+            <div class="settings-content">
+                <div class="settings-item">Account</div>
+                <div class="settings-item">Privacy</div>
+                <div class="settings-item">Chats</div>
+                <div class="settings-item">Notifications</div>
+                <div class="settings-item">Storage and Data</div>
+                <div class="settings-item">Help</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/chat.js' %}"></script>
+</body>
+</html>
