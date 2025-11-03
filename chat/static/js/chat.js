@@ -588,16 +588,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const emojiPopup = document.getElementById('emojiPopup');
     const emojiButton = document.querySelector('.chat-input-area .fa-smile');
     const messageInput = document.getElementById('chat-message-input');
+    const attachmentPopup = document.getElementById('attachmentPopup');
+    const attachButton = document.querySelector('.chat-input-area .fa-paperclip');
+    const attachmentInput = document.getElementById('attachmentInput');
     // const chatMessageSubmit = document.getElementById('chat-message-submit');
 
 
     // Close all popups safely
     function closeAllPopups() {
         if (emojiPopup) emojiPopup.style.display = 'none';
+        if (attachmentPopup) attachmentPopup.style.display = 'none';
 
     }
 
-    // Toggle emoji popup
+    // =============== EMOJI PICKER LOGIC =================
     emojiButton.addEventListener('click', (e) => {
         e.stopPropagation();
         if (emojiPopup.style.display === 'block') {
@@ -605,13 +609,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             closeAllPopups();
             emojiPopup.style.display = 'block';
-        }
-    });
-
-    // Close emoji popup when clicking outside
-    document.addEventListener('click', (event) => {
-        if (!event.target.closest('.emoji-popup') && !event.target.closest('.fa-smile')) {
-            emojiPopup.style.display = 'none';
         }
     });
 
@@ -623,11 +620,55 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessageSubmit.style.display = 'flex';    // Show send button
     });
 
-    // Close only when clicking outside (not when clicking inside)
+ // =============== ATTACHMENT POPUP LOGIC ==============
+    attachButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (attachmentPopup.style.display === 'block') {
+            attachmentPopup.style.display = 'none';
+        } else {
+            closeAllPopups();
+            attachmentPopup.style.display = 'block';
+        }
+    });
+
+    // Handle attachment option click
+    document.querySelectorAll('.attachment-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const type = option.dataset.type;
+            if (type === 'photo') {
+                attachmentInput.accept = 'image/*';
+            } else if (type === 'video') {
+                attachmentInput.accept = 'video/*';
+            } else if (type === 'document') {
+                attachmentInput.accept = '.pdf,.doc,.docx,.txt';
+            } else {
+                attachmentInput.accept = '*/*';
+            }
+
+            attachmentInput.click(); // open file dialog
+            attachmentPopup.style.display = 'none';
+        });
+    });
+
+    // File selected
+    attachmentInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            console.log('File selected:', file.name);
+            // Here you can send file via AJAX or WebSocket
+        }
+    });
+
+
+    // =============== CLOSE ON OUTSIDE CLICK ==============
     document.addEventListener('click', (event) => {
-        if (!event.target.closest('.emoji-popup') && !event.target.closest('.fa-smile')) {
-            emojiPopup.style.display = 'none';
+        if (
+            !event.target.closest('.emoji-popup') &&
+            !event.target.closest('.fa-smile') &&
+            !event.target.closest('.attachment-popup') &&
+            !event.target.closest('.fa-paperclip')
+        ) {
+            closeAllPopups();
         }
     });
 });
-
