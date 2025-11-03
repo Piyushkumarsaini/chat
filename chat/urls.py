@@ -19,4 +19,5 @@ urlpatterns = [
     # path('lobby/', views.lobby_view, name='lobby'),
     path('profile/get/', views.get_profile, name='get_profile'),
     path('update_profile/', views.update_profile, name='update_profile'),
+    path('chat/upload_attachment/', views.upload_attachment, name='upload_attachment'),
 ]

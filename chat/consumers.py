@@ -6,6 +6,14 @@ from .models import ChatUser, ChatMessage
 
 
 # ======================== MIXINS ========================
+import json
+from django.utils import timezone
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from .models import ChatUser, ChatMessage
+
+
+# ======================== MIXINS ========================
 
 class PresenceMixin:
     @database_sync_to_async
@@ -55,16 +63,19 @@ class MessagingMixin:
         return msg
 
     async def chat_message(self, event):
-        """Forward chat message to WebSocket client."""
+        """Forward chat message (text or attachment) to WebSocket client."""
         await self.send(text_data=json.dumps({
             "event": "chat_message",
-            "message": event["message"],
-            "sender_id": event["sender_id"],
-            "receiver_id": event["receiver_id"],
-            "timestamp": event["timestamp"],
-            "status": event["status"],
-            "msg_id": event["msg_id"],
+            "message": event.get("message"),
+            "sender_id": event.get("sender_id"),
+            "receiver_id": event.get("receiver_id"),
+            "timestamp": event.get("timestamp"),
+            "status": event.get("status"),
+            "msg_id": event.get("msg_id"),
+            "attachment_url": event.get("attachment_url", None),
+            "attachment_type": event.get("attachment_type", None),
         }))
+
 
 
 class StatusMixin:
@@ -295,3 +306,4 @@ class ChatConsumer(
                     },
                 )
             return
+        

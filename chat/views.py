@@ -9,8 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import pyotp
 from django.middleware.csrf import get_token
-
-
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 # ---------------------------
@@ -413,12 +413,66 @@ def get_chat_messages(request, number):
             'is_sender': msg.sender_id == current_user.id,
             'timestamp': msg.timestamp.strftime('%H:%M'),
             'status': msg.status,
+            'attachment_url': msg.attachment.url if msg.attachment else None,
+            'attachment_type': msg.attachment_type,
         }
         for msg in messages
     ]
 
     return JsonResponse({'messages': data})
 
+
+
+def upload_attachment(request):
+    """Handle chat media uploads and broadcast instantly."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request"}, status=405)
+
+    sender_id = request.POST.get("sender_id")
+    receiver_id = request.POST.get("receiver_id")
+    file = request.FILES.get("file")
+    file_type = request.POST.get("file_type", "document")
+
+    if not all([sender_id, receiver_id, file]):
+        return JsonResponse({"error": "Missing required fields"}, status=400)
+
+    sender = ChatUser.objects.get(id=sender_id)
+    receiver = ChatUser.objects.get(id=receiver_id)
+
+    msg = ChatMessage.objects.create(
+        sender=sender,
+        receiver=receiver,
+        attachment=file,
+        attachment_type=file_type,
+        status="sent",
+    )
+
+    file_url = request.build_absolute_uri(msg.attachment.url)
+
+    # 🔥 Broadcast to both clients via Channels
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "global_chat",
+        {
+            "type": "chat_message",
+            "message": None,
+            "sender_id": sender.id,
+            "receiver_id": receiver.id,
+            "timestamp": str(msg.timestamp),
+            "status": msg.status,
+            "msg_id": msg.id,
+            "attachment_url": file_url,
+            "attachment_type": file_type,
+        }
+    )
+
+    return JsonResponse({
+        "msg_id": msg.id,
+        "attachment_url": file_url,
+        "attachment_type": file_type,
+        "timestamp": str(msg.timestamp),
+        "status": msg.status,
+    })
 
 
 

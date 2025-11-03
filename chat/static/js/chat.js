@@ -138,26 +138,61 @@ chatSocket.onmessage = function (e) {
         const isSender = sender_id === meId;
         const status = data.status;
         const msgId = data.msg_id;
+     
         const ts = data.timestamp
-            ? new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : 'Just now';
+        ? new Date(data.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            })
+        : "Just now";
 
-        // Only append if message belongs to current open chat (either sent or received)
-        // i.e., message between me and otherUserId
-        if ((isSender && receiver_id === otherUserId) || (!isSender && sender_id === otherUserId)) {
-            const msgDiv = createMessageDiv(message, isSender, ts, status, msgId);
-            messagesContainer.appendChild(msgDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        // Only show if message is for the open chat
+        if (
+        (isSender && receiver_id === otherUserId) ||
+        (!isSender && sender_id === otherUserId)
+        ) {
+        let html = "";
+
+        // 📎 Attachment Handling
+        if (data.attachment_url) {
+            const url = data.attachment_url;
+            const type = data.attachment_type || "";
+
+            // 🖼️ Image
+            if (type.startsWith("image") || url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+            html = `<img src="${url}" class="chat-image" alt="image">`;
+
+            // 🎥 Video
+            } else if (type.startsWith("video") || url.match(/\.(mp4|webm|ogg)$/i)) {
+            html = `<video controls class="chat-video"><source src="${url}" type="video/mp4"></video>`;
+
+            // 📄 Document or other file types
+            } else {
+            html = `<a href="${url}" target="_blank" rel="noopener noreferrer">📄 Download File</a>`;
+            }
+        } else {
+            // 💬 Regular Text Message
+            html = escapeHtml(data.message || "");
         }
 
-        // If this client is the receiver (someone sent message to me), notify server to mark delivered
+        // Create the message bubble
+        const msgDiv = createMessageDiv(html, isSender, ts, status, msgId);
+
+        // Add to chat box
+        messagesContainer.appendChild(msgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 🟠 If current user is receiver → mark message as delivered
         if (!isSender && receiver_id === meId) {
-            chatSocket.send(JSON.stringify({
-                action: 'receiver_connected',
-                receiver_id: meId,
-            }));
-        }
-    } else if (eventType === 'status_update') {
+        chatSocket.send(
+            JSON.stringify({
+            action: "receiver_connected",
+            receiver_id: meId,
+            })
+        );
+     }
+  } else if (eventType === 'status_update') {
         const ids = data.msg_ids || [];
         const newStatus = data.new_status;
         ids.forEach((id) => updateTicksForMsg(id, newStatus));
@@ -168,30 +203,6 @@ chatSocket.onmessage = function (e) {
 
 chatSocket.onclose = function () {
     console.error('Chat socket closed unexpectedly');
-};
-
-// ------------------ Form Submission ------------------
-
-document.getElementById('chat-form').onsubmit = function (e) {
-    e.preventDefault();
-    const inputField = document.getElementById('chat-message-input');
-    const message = inputField.value.trim();
-    if (message === '') return;
-
-    // Use the current otherUserId variable
-    if (!otherUserId) {
-        alert('Select a chat first.');
-        return;
-    }
-
-    chatSocket.send(JSON.stringify({
-        action: 'send_message',
-        message: message,
-        sender_id: meId,
-        receiver_id: otherUserId,
-    }));
-
-    inputField.value = '';
 };
 
 // ------------------ Event Listeners ------------------
@@ -497,7 +508,6 @@ function saveProfileData() {
         updateProfileField('status', newStatus);
     }
 }
-
 // ===================== USER INFO POPUP LOGIC =====================
 
 // Elements
@@ -582,85 +592,206 @@ navItems.forEach((item) => {
     });
 });
 
-// -------------------------------------------- emojiPopup ----------------------------------------
+
+// ------------------ Form Submission ------------------
+
+document.getElementById('chat-form').onsubmit = function (e) {
+    e.preventDefault();
+    const inputField = document.getElementById('chat-message-input');
+    const message = inputField.value.trim();
+
+    // 🧱 Validate input
+    if (!message) return;
+    if (!otherUserId) {
+        alert('Select a chat first.');
+        return;
+    }
+
+    // 🕒 Prepare timestamp and temp ID
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const tempId = 'temp-' + Date.now();
+
+    // ✅ Instantly show the message in UI
+    if (typeof createMessageDiv === 'function' && typeof messagesContainer !== 'undefined') {
+        const msgDiv = createMessageDiv(message, true, ts, 'sent', tempId);
+        messagesContainer.appendChild(msgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // 🟢 Send message via WebSocket
+    if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+        chatSocket.send(JSON.stringify({
+            action: 'send_message',
+            message: message,
+            sender_id: meId,
+            receiver_id: otherUserId,
+        }));
+    } else {
+        console.error('❌ WebSocket not connected.');
+        alert('Connection lost. Try reloading the page.');
+    }
+
+    // Clear input field
+    inputField.value = '';
+};
+
+// ------------------ Popup & Attachment Logic ------------------
+
+const emojiPopup = document.getElementById('emojiPopup');
+const emojiButton = document.querySelector('.chat-input-area .fa-smile');
+const messageInput = document.getElementById('chat-message-input');
+const attachmentPopup = document.getElementById('attachmentPopup');
+const attachButton = document.querySelector('.chat-input-area .fa-paperclip');
+const attachmentInput = document.getElementById('attachmentInput');
+
+
+
+// ================== CSRF TOKEN HELPER ==================
+function getCSRFToken() {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith('csrftoken=')) {
+                cookieValue = decodeURIComponent(cookie.substring('csrftoken='.length));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrfToken = getCSRFToken();
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Get elements
-    const emojiPopup = document.getElementById('emojiPopup');
-    const emojiButton = document.querySelector('.chat-input-area .fa-smile');
-    const messageInput = document.getElementById('chat-message-input');
-    const attachmentPopup = document.getElementById('attachmentPopup');
-    const attachButton = document.querySelector('.chat-input-area .fa-paperclip');
-    const attachmentInput = document.getElementById('attachmentInput');
-    // const chatMessageSubmit = document.getElementById('chat-message-submit');
 
-
-    // Close all popups safely
+    // ======= Helper: Close all popups =======
     function closeAllPopups() {
         if (emojiPopup) emojiPopup.style.display = 'none';
         if (attachmentPopup) attachmentPopup.style.display = 'none';
-
     }
 
     // =============== EMOJI PICKER LOGIC =================
-    emojiButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (emojiPopup.style.display === 'block') {
-            emojiPopup.style.display = 'none';
-        } else {
-            closeAllPopups();
-            emojiPopup.style.display = 'block';
-        }
-    });
+    if (emojiButton && emojiPopup) {
+        emojiButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (emojiPopup.style.display === 'block') {
+                emojiPopup.style.display = 'none';
+            } else {
+                closeAllPopups();
+                emojiPopup.style.display = 'block';
+            }
+        });
+    }
 
-    // Keep emoji popup open while selecting emojis
     const emojiPicker = document.querySelector('emoji-picker');
-    emojiPicker.addEventListener('emoji-click', (event) => {
-        messageInput.value += event.detail.unicode;  // Add emoji to input
-        messageInput.focus();
-        chatMessageSubmit.style.display = 'flex';    // Show send button
-    });
+    if (emojiPicker) {
+        emojiPicker.addEventListener('emoji-click', (event) => {
+            messageInput.value += event.detail.unicode;  // Add emoji to input
+            messageInput.focus();
+        });
+    }
 
- // =============== ATTACHMENT POPUP LOGIC ==============
-    attachButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (attachmentPopup.style.display === 'block') {
+    // =============== ATTACHMENT POPUP LOGIC ==============
+    if (attachButton && attachmentPopup) {
+        attachButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            attachmentPopup.style.display =
+                attachmentPopup.style.display === 'block' ? 'none' : 'block';
+        });
+    }
+
+    // Close attachment popup when clicking outside
+    window.addEventListener('click', (e) => {
+        if (
+            attachmentPopup &&
+            !attachmentPopup.contains(e.target) &&
+            !attachButton.contains(e.target)
+        ) {
             attachmentPopup.style.display = 'none';
-        } else {
-            closeAllPopups();
-            attachmentPopup.style.display = 'block';
         }
     });
 
     // Handle attachment option click
-    document.querySelectorAll('.attachment-option').forEach(option => {
+    document.querySelectorAll('.attachment-option').forEach((option) => {
         option.addEventListener('click', () => {
             const type = option.dataset.type;
-            if (type === 'photo') {
-                attachmentInput.accept = 'image/*';
-            } else if (type === 'video') {
-                attachmentInput.accept = 'video/*';
-            } else if (type === 'document') {
-                attachmentInput.accept = '.pdf,.doc,.docx,.txt';
-            } else {
-                attachmentInput.accept = '*/*';
+            attachmentPopup.style.display = 'none';
+
+            let acceptTypes = '';
+            if (type === 'photo') acceptTypes = 'image/*';
+            else if (type === 'video') acceptTypes = 'video/*';
+            else if (type === 'document')
+                acceptTypes = '.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.zip,.rar';
+            else if (type === 'camera') {
+                acceptTypes = 'image/*';
+                attachmentInput.capture = 'camera';
             }
 
-            attachmentInput.click(); // open file dialog
-            attachmentPopup.style.display = 'none';
+            attachmentInput.accept = acceptTypes;
+            attachmentInput.dataset.fileType = type;
+            attachmentInput.click();
         });
     });
 
-    // File selected
-    attachmentInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            console.log('File selected:', file.name);
-            // Here you can send file via AJAX or WebSocket
+
+    // ================== UPLOAD FILE & SHOW IMMEDIATELY ==================
+    attachmentInput.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const fileType = attachmentInput.dataset.fileType || 'document';
+        const localUrl = URL.createObjectURL(file);
+
+        // Show local preview instantly
+        renderAttachmentBubble(localUrl, fileType, true);
+
+        // Prepare form data for upload
+        const formData = new FormData();
+        formData.append('sender_id', meId);
+        formData.append('receiver_id', otherUserId);
+        formData.append('file', file);
+        formData.append('file_type', fileType);
+
+        try {
+            const response = await fetch('/chat/upload_attachment/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) throw new Error('Upload failed');
+
+            const data = await response.json();
+            console.log('Uploaded successfully:', data);
+
+            // Update preview with final server URL if available
+            if (data.attachment_url) {
+                const lastMsg = messagesContainer.lastElementChild;
+                if (lastMsg && lastMsg.querySelector('img, video, a')) {
+                    const element = lastMsg.querySelector('img, video, a');
+                    if (element.tagName === 'IMG') element.src = data.attachment_url;
+                    else if (element.tagName === 'VIDEO') {
+                        const source = element.querySelector('source');
+                        if (source) source.src = data.attachment_url;
+                        element.load();
+                    } else if (element.tagName === 'A') {
+                        element.href = data.attachment_url;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('⚠️ Upload error:', err);
+            alert('Error uploading file. Try again.');
+        } finally {
+            attachmentInput.value = '';
+            attachmentInput.capture = '';
         }
     });
 
-
-    // =============== CLOSE ON OUTSIDE CLICK ==============
+    // ================== CLOSE ON OUTSIDE CLICK ==================
     document.addEventListener('click', (event) => {
         if (
             !event.target.closest('.emoji-popup') &&
@@ -672,3 +803,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+// ================== RENDER ATTACHMENT MESSAGE ==================
+function renderAttachmentBubble(url, type, isSender) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = isSender ? 'msg sent' : 'msg received';
+
+    let html = '';
+    if (type === 'image' || url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+        html = `<img src="${url}" class="chat-image" alt="image">`;
+    } else if (type === 'video' || url.match(/\.(mp4|webm|ogg)$/i)) {
+        html = `<video controls class="chat-video"><source src="${url}" type="video/mp4"></video>`;
+    } else {
+        html = `<a href="${url}" target="_blank" rel="noopener noreferrer">📄 Download File</a>`;
+    }
+
+    msgDiv.innerHTML = html;
+    messagesContainer.appendChild(msgDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
