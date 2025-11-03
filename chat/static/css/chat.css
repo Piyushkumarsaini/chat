@@ -1485,11 +1485,6 @@ f
     left: 10px;
 }
 
-#attachmentPopup.popup-overlay {
-    bottom: 70px;
-    left: 10px;
-}
-
 #chatMenuPopup.popup-overlay {
     top: 60px;
     right: 10px;
@@ -1512,30 +1507,75 @@ f
     --input-border-color: var(--whatsapp-border-color);
 }
 
+/* === Attachment Popup Styling === */
+#attachmentPopup.popup-overlay {
+  position: absolute;
+  bottom: 70px;
+  left: 10px;
+  background: transparent;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  z-index: 2000;
+}
+
 .attachment-popup {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-    width: 200px;
-    padding: 10px 0;
-    animation: popupFadeIn 0.2s ease-in-out;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  width: 220px;
+  padding: 8px 0;
+  overflow: hidden;
+  animation: popupFadeIn 0.25s ease-in-out;
 }
 
 .attachment-option {
-    display: flex;
-    align-items: center;
-    padding: 10px 15px;
-    color: var(--whatsapp-dark-grey-text);
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.attachment-option i {
-    margin-right: 10px;
-    color: var(--whatsapp-green);
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  color: var(--whatsapp-dark-grey-text);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s ease;
 }
 
 .attachment-option:hover {
-    background-color: var(--whatsapp-active-chat-bg);
+  background-color: var(--whatsapp-active-chat-bg);
+  transform: scale(1.02);
+}
+
+.attachment-option i {
+  margin-right: 12px;
+  color: var(--whatsapp-green);
+  font-size: 1.2rem;
+}
+
+/* Optional: fade-in animation */
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-image {
+  max-width: 280px;
+  border-radius: 10px;
+  display: block;
+  margin-top: 5px;
+}
+.chat-video {
+  max-width: 320px;
+  border-radius: 8px;
+  display: block;
+  margin-top: 5px;
+}
+
+.message-content img, .message-content video {
+  width: 100%;
+  height: auto;
 }

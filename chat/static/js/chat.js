@@ -1,6 +1,3 @@
-// ======= chat.js (updated) =======
-
-// Grab chat-related elements
 const messagesContainer = document.getElementById('chat-messages');
 const roomName = messagesContainer?.dataset.roomName || '';
 const meId = Number(messagesContainer?.dataset.meId || 0);              // Logged-in user
@@ -582,6 +579,55 @@ navItems.forEach((item) => {
         // Show selected
         const sectionId = item.dataset.section + 'Section';
         document.getElementById(sectionId).style.display = 'block';
+    });
+});
+
+// -------------------------------------------- emojiPopup ----------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+    // Get elements
+    const emojiPopup = document.getElementById('emojiPopup');
+    const emojiButton = document.querySelector('.chat-input-area .fa-smile');
+    const messageInput = document.getElementById('chat-message-input');
+    // const chatMessageSubmit = document.getElementById('chat-message-submit');
+
+
+    // Close all popups safely
+    function closeAllPopups() {
+        if (emojiPopup) emojiPopup.style.display = 'none';
+
+    }
+
+    // Toggle emoji popup
+    emojiButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (emojiPopup.style.display === 'block') {
+            emojiPopup.style.display = 'none';
+        } else {
+            closeAllPopups();
+            emojiPopup.style.display = 'block';
+        }
+    });
+
+    // Close emoji popup when clicking outside
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.emoji-popup') && !event.target.closest('.fa-smile')) {
+            emojiPopup.style.display = 'none';
+        }
+    });
+
+    // Keep emoji popup open while selecting emojis
+    const emojiPicker = document.querySelector('emoji-picker');
+    emojiPicker.addEventListener('emoji-click', (event) => {
+        messageInput.value += event.detail.unicode;  // Add emoji to input
+        messageInput.focus();
+        chatMessageSubmit.style.display = 'flex';    // Show send button
+    });
+
+    // Close only when clicking outside (not when clicking inside)
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.emoji-popup') && !event.target.closest('.fa-smile')) {
+            emojiPopup.style.display = 'none';
+        }
     });
 });
 

@@ -161,16 +161,19 @@
                     <emoji-picker></emoji-picker>
                 </div>
             </div>
+            <!-- 📎 Attachment Popup -->
+
             <div id="attachmentPopup" class="popup-overlay" style="display: none;">
                 <div class="attachment-popup">
-                    <div class="attachment-option" data-type="photo">
-                        <i class="fas fa-image"></i> Photos & Videos
-                    </div>
-                    <div class="attachment-option" data-type="document">
-                        <i class="fas fa-file"></i> Document
-                    </div>
+                    <div class="attachment-option" data-type="photo"><i class="fas fa-image"></i> Photos</div>
+                    <div class="attachment-option" data-type="video"><i class="fas fa-video"></i> Video\</div>
+                    <div class="attachment-option" data-type="document"><i class="fas fa-file"></i> Document</div>
+                    <div class="attachment-option" data-type="content"><i class="fas fa-address-card"></i> Content</div>
                 </div>
             </div>
+            <!-- Hidden file input -->
+            <input type="file" id="attachmentInput" style="display:none;" />
+
             <div id="chatMenuPopup" class="popup-overlay" style="display: none;">
                 <div class="chat-menu-popup">
                     <div class="menu-option" data-action="view-contact">View Contact</div>
